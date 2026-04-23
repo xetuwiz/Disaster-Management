@@ -139,7 +139,7 @@ public class SchedulerAdminService {
                 .intervalHint(intervalHint)
                 .enabled(enabled)
                 .lastDataAt(lastDataAt)
-                .staleMinutes(lastDataAt == null ? null : Duration.between(lastDataAt, LocalDateTime.now()).toMinutes())
+                .staleMinutes(lastDataAt == null ? null : Duration.between(lastDataAt, LocalDateTime.now(java.time.ZoneOffset.UTC)).toMinutes())
                 .triggerEndpoint(triggerEndpoint)
                 .notes(notes)
                 .build();

@@ -5,6 +5,7 @@ import com.sidms.backend.entity.WeatherNode;
 import com.sidms.backend.entity.WeatherNodeHistoricalDaily;
 import com.sidms.backend.repository.WeatherNodeHistoricalDailyRepository;
 import com.sidms.backend.repository.WeatherNodeRepository;
+import com.sidms.backend.service.SyncStateService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,8 @@ import com.sidms.backend.client.OpenMeteoClient;
 import org.springframework.beans.factory.annotation.Value;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -28,11 +31,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class HistoricalBackfillScheduler {
 
-    private final WeatherNodeRepository weatherNodeRepository;
-    private final WeatherNodeHistoricalDailyRepository historicalDailyRepository;
-    private final ApiKeyConfig apiKeyConfig;
-    private final OpenMeteoClient openMeteoClient;
-    private final JdbcTemplate jdbcTemplate;
+    private static final String   JOB_NAME = "historical_backfill";
+    private static final Duration COOLDOWN  = Duration.ofHours(20);
+
+    private final SyncStateService                       syncStateService;
+    private final WeatherNodeRepository                  weatherNodeRepository;
+    private final WeatherNodeHistoricalDailyRepository   historicalDailyRepository;
+    private final ApiKeyConfig                           apiKeyConfig;
+    private final OpenMeteoClient                        openMeteoClient;
+    private final JdbcTemplate                          jdbcTemplate;
 
     @Value("${app.sync.debug.verbose:false}")
     private boolean verboseSyncDebug;
@@ -42,12 +49,33 @@ public class HistoricalBackfillScheduler {
     // ──────────────────────────────────────────────
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
+    public void scheduledBackfill() {
+        if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+        try {
+            backfillHistory();
+            syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+        } catch (Exception e) {
+            log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+            syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+        }
+    }
+
+    /**
+     * Public entry point for daily backfill — also called by AdminSyncController.
+     * Processes yesterday for all active nodes.
+     */
+    @Transactional
+    public void backfillHistory() {
+        backfillHistoricalData();
+    }
+
+    @Transactional
     public void backfillHistoricalData() {
         String runId = UUID.randomUUID().toString().substring(0, 8);
         log.info("⏳ Historical backfill started runId={}", runId);
         long start = System.currentTimeMillis();
 
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         List<WeatherNode> activeNodes = weatherNodeRepository.findByIsActiveTrue();
 
         int aggregated = 0;
@@ -149,7 +177,7 @@ public class HistoricalBackfillScheduler {
                 .windMaxKmh(toDouble(row.get("wind_max")))
                 .cloudMeanPct(toDouble(row.get("cloud_mean")))
                 .capeMax(toDouble(row.get("cape_max")))
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
 
         historicalDailyRepository.save(daily);
@@ -200,7 +228,7 @@ public class HistoricalBackfillScheduler {
                     .humidityMeanPct(getDoubleFromArray(daily, "relative_humidity_2m_mean", 0))
                     .windMaxKmh(getDoubleFromArray(daily, "wind_speed_10m_max", 0))
                     .cloudMeanPct(getDoubleFromArray(daily, "cloud_cover_mean", 0))
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now(ZoneOffset.UTC))
                     .build();
 
             historicalDailyRepository.save(record);
@@ -253,7 +281,7 @@ public class HistoricalBackfillScheduler {
         long start = System.currentTimeMillis();
 
         List<WeatherNode> activeNodes = weatherNodeRepository.findByIsActiveTrue();
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         int totalFetched = 0;
         int totalSkipped = 0;
 

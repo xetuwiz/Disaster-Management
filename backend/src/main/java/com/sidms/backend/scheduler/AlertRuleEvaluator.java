@@ -4,6 +4,7 @@ import com.sidms.backend.dto.weather.WeatherResponse;
 import com.sidms.backend.entity.AlertRule;
 import com.sidms.backend.repository.AlertRuleRepository;
 import com.sidms.backend.service.NotificationService;
+import com.sidms.backend.service.SyncStateService;
 import com.sidms.backend.service.WeatherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -21,8 +24,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AlertRuleEvaluator {
 
+    private static final String   JOB_NAME = "alert_evaluation";
+    private static final Duration COOLDOWN  = Duration.ofMinutes(15);
+
+    private final SyncStateService    syncStateService;
     private final AlertRuleRepository alertRuleRepository;
-    private final WeatherService weatherService;
+    private final WeatherService      weatherService;
     private final NotificationService notificationService;
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
@@ -31,6 +38,19 @@ public class AlertRuleEvaluator {
     // Evaluate alert rules: every 15 minutes
     // ──────────────────────────────────────────────
     @Scheduled(fixedDelayString = "${app.sync.alerts.interval}", initialDelayString = "${app.sync.alerts.initial-delay}")
+    @Transactional
+    public void scheduledEvaluateAlertRules() {
+        if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+        try {
+            evaluateAlertRules();
+            syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+        } catch (Exception e) {
+            log.error("[AlertRuleEval] Sync failed: {}", e.getMessage(), e);
+            syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+        }
+    }
+
+    /** Public entry point — also called by AdminSyncController for manual triggers. */
     @Transactional
     public void evaluateAlertRules() {
         log.info("⏳ Alert rule evaluation started");
@@ -96,7 +116,7 @@ public class AlertRuleEvaluator {
                             rule.getSpatialUnitId(),
                             null);
 
-                    rule.setLastTriggeredAt(LocalDateTime.now());
+                    rule.setLastTriggeredAt(LocalDateTime.now(ZoneOffset.UTC));
                     alertRuleRepository.save(rule);
                     triggered++;
 
@@ -147,7 +167,7 @@ public class AlertRuleEvaluator {
         }
         return rule.getLastTriggeredAt()
                 .plusHours(rule.getCooldownHours())
-                .isAfter(LocalDateTime.now());
+                .isAfter(LocalDateTime.now(ZoneOffset.UTC));
     }
 
     // ──────────────────────────────────────────────

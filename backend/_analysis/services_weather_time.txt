@@ -1,0 +1,294 @@
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AdminUserService.java:84: user.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AdminUserService.java:107: user.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AdminUserService.java:119: user.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AdminUserService.java:138: user.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AlertEngineService.java:54: return rule.getLastTriggeredAt().plusHours(cooldownHours).isAfter(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AlertEngineService.java:98: rule.setLastTriggeredAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AlertRuleService.java:61: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:25: private final ForecastProjectionRepository forecastProjectionRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:28: private final ForecastComparisonRepository forecastComparisonRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:35: ForecastProjectionRepository forecastProjectionRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:38: ForecastComparisonRepository forecastComparisonRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:44: this.forecastProjectionRepository = forecastProjectionRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:47: this.forecastComparisonRepository = forecastComparisonRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:70: // 4. Load forecasts (next 14 days)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:71: List<ForecastDto> forecast = loadForecasts(spatialUnitId);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:88: .forecast(forecast)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:177: // ── Forecasts ───────────────────────────────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:179: private List<ForecastDto> loadForecasts(UUID spatialUnitId) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:183: List<ForecastProjection> projections = forecastProjectionRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:184: .findBySpatialUnitIdAndMetricAndForecastDateBetween(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:189: projections = forecastProjectionRepository.findBySpatialUnitIdAndForecastDateBetween(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:194: Map<LocalDate, ForecastProjection> byDate = new TreeMap<>();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:195: for (ForecastProjection fp : projections) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:196: byDate.putIfAbsent(fp.getForecastDate(), fp);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:200: .map(fp -> ForecastDto.builder()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:201: .date(fp.getForecastDate())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:343: public void saveForecastsForComparison(UUID spatialUnitId, UUID projectionId, String metric,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:345: LocalDateTime now = LocalDateTime.now();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:354: ForecastComparison comparison = ForecastComparison.builder()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:355: .forecastProjectionId(projectionId)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:359: .forecastGeneratedAt(now)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:366: forecastComparisonRepository.save(comparison);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:371: public void updateForecastWithActuals(UUID spatialUnitId, String metric, LocalDate targetDate, Double actualValue) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:372: Optional<ForecastComparison> opt = forecastComparisonRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:373: .findFirstBySpatialUnitIdAndMetricAndTargetDateAndActualValueIsNullOrderByForecastGeneratedAtDesc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:379: ForecastComparison comp = opt.get();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:381: comp.setActualRecordedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:396: forecastComparisonRepository.save(comp);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:399: public ForecastAccuracyDto getForecastAccuracy(UUID spatialUnitId, Integer days, String metric) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:400: LocalDateTime cutoff = LocalDateTime.now().minusDays(days != null ? days : 30);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:401: List<ForecastComparison> comparisons;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:404: comparisons = forecastComparisonRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:408: comparisons = forecastComparisonRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:413: return ForecastAccuracyDto.builder()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:415: .totalForecasts(0)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:426: for (ForecastComparison c : comparisons) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:433: return ForecastAccuracyDto.builder()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:435: .totalForecasts(count)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:441: public List<ForecastComparison> getForecastHistory(UUID spatialUnitId, String metric, Integer days) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:442: LocalDateTime cutoff = LocalDateTime.now().minusDays(days != null ? days : 30);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:443: return forecastComparisonRepository.findBySpatialUnitIdAndMetricAndActualRecordedAtAfterOrderByTargetDateDesc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:447: public List<ForecastHistoryPointDto> getForecastHistoryPoints(UUID spatialUnitId, String metric, Integer days) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:448: return getForecastHistory(spatialUnitId, metric, days).stream()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:449: .map(c -> ForecastHistoryPointDto.builder()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AnalyticsService.java:458: .forecastGeneratedAt(c.getForecastGeneratedAt())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:85: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:86: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:110: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:111: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:142: user.getId(), LocalDateTime.now().minusMinutes(15)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:155: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:165: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:184: .lastActive(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:185: .expiresAt(LocalDateTime.now().plusDays(30))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:187: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:209: .filter(s -> !s.getRevoked() && s.getExpiresAt().isAfter(LocalDateTime.now()))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:244: .lastActive(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:245: .expiresAt(LocalDateTime.now().plusDays(30))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\AuthService.java:247: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:87: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:88: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:99: .uploadedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:138: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:149: report.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:203: report.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:219: .uploadedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:314: report.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\CommunityReportService.java:346: report.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\ContentService.java:57: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\ContentService.java:58: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\ContentService.java:76: article.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\ContentService.java:100: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\ContentService.java:101: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\ContentService.java:115: entry.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:164: if (req.getExpiresAt() == null || !req.getExpiresAt().isAfter(LocalDateTime.now())) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:195: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:196: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:206: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:248: warning.setResolvedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:252: warning.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:262: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:282: warning.setResolvedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:283: warning.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:293: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:321: .expiresAt(LocalDateTime.now().plusHours(12))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:323: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:324: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:333: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:376: .expiresAt(LocalDateTime.now().plusHours(24))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:378: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:379: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:388: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:402: warning.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:425: warning.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\DisasterWarningService.java:434: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:51: req.setCreatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:52: req.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:82: resource.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:120: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:121: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:132: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:152: incident.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:155: incident.setResolvedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:173: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:204: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:205: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:278: task.setAcceptedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:279: task.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:291: task.setCompletedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:292: task.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:317: task.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\EmergencyService.java:329: task.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:59: // Load all readings and get latest per station+source
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:62: Map<String, FloodGaugeReading> latestByStation = new LinkedHashMap<>();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:64: String key = reading.getStationName() + "|" + reading.getSource();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:65: FloodGaugeReading existing = latestByStation.get(key);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:67: latestByStation.put(key, reading);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:71: List<GaugeStationDto> gauges = latestByStation.values().stream()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:72: .map(r -> GaugeStationDto.builder()
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:73: .stationName(r.getStationName())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:113: .totalStations(gauges.size())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:146: * ArcGIS hydrostations (gauging station metadata).
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:148: public List<Map<String, Object>> getArcGISStations() {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:149: return arcGISClient.fetchStations();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:160: * ArcGIS gauge history for a specific station.
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\FloodService.java:223: device.setLastSyncedAt(java.time.LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\IdwComputationService.java:24: public class IdwComputationService {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\IdwComputationService.java:146: LocalDateTime now = LocalDateTime.now();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MapService.java:63: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MapService.java:90: customZone.setDeletedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:90: .scrapedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:120: public Map<String, Object> getPublicForecast() {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:121: return meteoSLClient.getPublicForecast();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:124: public Map<String, Object> getMarineForecast() {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:125: return meteoSLClient.getMarineForecast();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:128: public Map<String, Object> getFleetForecast() {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\MeteoScraperService.java:129: return meteoSLClient.getFleetForecast();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\NotificationService.java:74: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\NotificationService.java:99: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:5: import com.sidms.backend.repository.ForecastProjectionRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:21: private final ForecastProjectionRepository forecastProjectionRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:48: ForecastProjectionRepository forecastProjectionRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:53: this.forecastProjectionRepository = forecastProjectionRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:72: "sync-forecasts",
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:73: "Forecast Projection Sync",
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:76: forecastProjectionRepository.findTopByOrderByGeneratedAtDesc().map(v -> v.getGeneratedAt())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:78: "/api/v1/admin/setup/sync-forecasts",
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:79: "Refreshes forecast projections and analytics baselines (requires weather.enabled)."));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SchedulerAdminService.java:142: .staleMinutes(lastDataAt == null ? null : Duration.between(lastDataAt, LocalDateTime.now(java.time.ZoneOffset.UTC)).toMinutes())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SpatialImportService.java:153: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SpatialImportService.java:154: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SpatialUnitAdminService.java:98: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SpatialUnitAdminService.java:99: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SpatialUnitAdminService.java:120: entity.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SpatialUnitAdminService.java:227: .computedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:18: public class SyncStateService {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:42: boolean allowed = LocalDateTime.now(ZoneOffset.UTC).isAfter(state.getNextAllowedUtc());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:56: LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:91: LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:108: state.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:121: state.setNextAllowedUtc(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:123: state.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SyncStateService.java:142: .updatedAt(LocalDateTime.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\SystemAdminService.java:67: systemConfig.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:64: user.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:74: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:89: prefs.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:118: user.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:125: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:161: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:183: user.setDeletedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\UserProfileService.java:199: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherNodeAdminService.java:81: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherNodeAdminService.java:82: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherNodeAdminService.java:103: entity.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherNodeGeneratorService.java:90: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherNodeGeneratorService.java:91: .updatedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:5: import com.sidms.backend.entity.GnStationAnchor;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:6: import com.sidms.backend.entity.JaxaRainGrid;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:8: import com.sidms.backend.entity.OpenmeteoForecastEnsemble;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:9: import com.sidms.backend.entity.SpatialForecastSnapshot;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:12: import com.sidms.backend.entity.StationMetadata;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:13: import com.sidms.backend.entity.StationObservation;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:18: import com.sidms.backend.repository.GnStationAnchorRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:19: import com.sidms.backend.repository.JaxaRainGridRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:21: import com.sidms.backend.repository.OpenmeteoForecastEnsembleRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:22: import com.sidms.backend.repository.SpatialForecastSnapshotRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:25: import com.sidms.backend.repository.StationMetadataRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:26: import com.sidms.backend.repository.StationObservationRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:46: public class WeatherService {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:51: private final SpatialForecastSnapshotRepository       spatialForecastSnapshotRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:52: private final GnStationAnchorRepository               gnStationAnchorRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:53: private final StationObservationRepository            stationObservationRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:54: private final StationMetadataRepository               stationMetadataRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:57: private final JaxaRainGridRepository                  jaxaRainGridRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:58: private final OpenmeteoForecastEnsembleRepository     openmeteoForecastEnsembleRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:66: SpatialForecastSnapshotRepository spatialForecastSnapshotRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:67: GnStationAnchorRepository gnStationAnchorRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:68: StationObservationRepository stationObservationRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:69: StationMetadataRepository stationMetadataRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:72: JaxaRainGridRepository jaxaRainGridRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:73: OpenmeteoForecastEnsembleRepository openmeteoForecastEnsembleRepository,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:80: this.spatialForecastSnapshotRepository = spatialForecastSnapshotRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:81: this.gnStationAnchorRepository         = gnStationAnchorRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:82: this.stationObservationRepository      = stationObservationRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:83: this.stationMetadataRepository         = stationMetadataRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:86: this.jaxaRainGridRepository            = jaxaRainGridRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:87: this.openmeteoForecastEnsembleRepository = openmeteoForecastEnsembleRepository;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:100: // ── CHANGE 2: Station direct serving ─────────────────────────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:101: // GN divisions within 2 km of a real station receive its reading directly
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:103: Optional<GnStationAnchor> anchor = gnStationAnchorRepository.findFirstByIdGnId(spatialUnitId);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:104: if (anchor.isPresent()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:105: Optional<StationObservation> stationObs = stationObservationRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:106: .findTopByStationIdOrderByTimestampUtcDesc(anchor.get().getId().getStationId());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:107: if (stationObs.isPresent()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:108: StationObservation obs = stationObs.get();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:109: long ageMinutes = Duration.between(obs.getTimestampUtc(), LocalDateTime.now(ZoneOffset.UTC)).toMinutes();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:120: .fetchedAt(obs.getTimestampUtc())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:121: .dataQuality("STATION_DIRECT")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:124: log.info("[WeatherService] Station-direct response for {} from station {}",
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:125: spatialUnitId, anchor.get().getId().getStationId());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:159: // Pre-fetch node entities for bias and elevation
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:174: boolean hasNonZeroBias = false;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:200: nodeTimeseriesRepository.findTopByNodeIdAndForecastHourOrderByValidFromUtcDesc(nodeId, 0);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:247: // ── CHANGE 4: Apply bias correction to temperature ──────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:249: boolean appliedBias = false;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:252: double bias = (node != null && node.getBiasTempC() != null)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:253: ? node.getBiasTempC() : 0.0;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:254: correctedTemp = rawTempC + bias;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:255: if (bias != 0.0) appliedBias = true;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:259: if (rawTempC != null)    { wTempC += correctedTemp * w; swTempC += w; if (appliedBias) hasNonZeroBias = true; }
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:299: // If we have bias-corrected model data, upgrade the label
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:300: // (station anchor existed but was stale — we fell through to IDW)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:301: if (hasNonZeroBias && anchor.isPresent()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:302: dataQuality = "MODEL_BIAS_CORRECTED";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:340: .findByWeatherNodeIdAndRecordDate(rank1NodeId, LocalDate.now(ZoneOffset.UTC));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:351: java.time.OffsetDateTime now = java.time.OffsetDateTime.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:361: // ── Rainfall fusion (station → JAXA satellite → IDW model) ───────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:496: public Map<String, Object> getForecastWeather(Double lat, Double lng) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:518: String forecastCacheKey = CacheKeys.weatherForecastSpatial(nearest.getId().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:520: String cachedForecast = redisTemplate.opsForValue().get(forecastCacheKey);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:521: if (cachedForecast != null && !cachedForecast.isBlank()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:522: data = objectMapper.readTree(cachedForecast);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:543: SpatialForecastSnapshot snapshot = spatialForecastSnapshotRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:550: forecastCacheKey,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:552: CacheKeys.TTL_FORECAST_SHORT);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:567: // ── Extended forecast: days 8-14 from ensemble percentiles ────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:568: result.put("extended", buildExtendedForecast(nearest));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:589: List<NodeTimeseries> timeseries = nodeTimeseriesRepository.findByNodeIdOrderByForecastHourAsc(primaryNodeId);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:635: java.time.OffsetDateTime now = java.time.OffsetDateTime.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:647: * Queries {@code openmeteo_forecast_ensemble} for the primary node of the given
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:659: private List<Map<String, Object>> buildExtendedForecast(SpatialUnit nearest) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:672: List<OpenmeteoForecastEnsemble> rows =
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:673: openmeteoForecastEnsembleRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:674: .findByNodeIdAndForecastDateBetweenOrderByForecastDateAsc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:678: for (OpenmeteoForecastEnsemble row : rows) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:680: entry.put("date", row.getForecastDate().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:703: log.warn("[WeatherService] Failed to build extended forecast for {}: {}", nearest.getId(), e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:736: *   1. Physical station within 10 km with a fresh observation (≤ 3h)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:737: *   2. JAXA GSMaP satellite grid cell within ±0.06° and ≤ 2h old
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:754: // ── Priority 1: Physical station within 10 km ─────────────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:756: List<StationMetadata> allStations = stationMetadataRepository.findAll();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:757: LocalDateTime stationCutoff = LocalDateTime.now(ZoneOffset.UTC).minusHours(3);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:759: StationMetadata nearest10km = null;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:762: for (StationMetadata station : allStations) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:763: if (station.getLatitude() == null || station.getLongitude() == null) continue;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:765: station.getLatitude().doubleValue(),
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:766: station.getLongitude().doubleValue(),
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:770: nearest10km = station;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:775: Optional<StationObservation> obsOpt = stationObservationRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:776: .findTopByStationIdAndTimestampUtcAfterOrderByTimestampUtcDesc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:777: nearest10km.getStationId(), stationCutoff);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:779: log.debug("[WeatherService] Rainfall P1 (station {}, {:.1f}km) for {}",
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:780: nearest10km.getStationId(), minDist, spatialUnitId);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:785: log.warn("[WeatherService] Rainfall P1 (station) failed: {}", e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:788: // ── Priority 2: JAXA GSMaP satellite ─────────────────────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:794: Optional<JaxaRainGrid> gridOpt = jaxaRainGridRepository
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:795: .findTopByGridLatBetweenAndGridLonBetweenAndTimestampUtcAfterOrderByTimestampUtcDesc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:798: LocalDateTime.now(ZoneOffset.UTC).minusHours(6));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:800: log.debug("[WeatherService] Rainfall P2 (JAXA) for {}", spatialUnitId);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:801: BigDecimal jaxa = gridOpt.get().getRainfallMm();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:802: return jaxa != null ? jaxa.doubleValue() : null;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:805: log.warn("[WeatherService] Rainfall P2 (JAXA) failed: {}", e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\service\WeatherService.java:819: .findTopByNodeIdAndForecastHourOrderByValidFromUtcDesc(nodeId, 0);

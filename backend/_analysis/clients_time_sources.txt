@@ -1,0 +1,112 @@
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\ArcGISClient.java:25: private static final String BASE = "https://services3.arcgis.com/J7ZFXmR8rSmQ3FGf/arcgis/rest/services";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:4: import org.apache.commons.net.ftp.FTP;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:5: import org.apache.commons.net.ftp.FTPClient;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:6: import org.apache.commons.net.ftp.FTPFile;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:27: * Downloads and parses JAXA GSMaP_NRT global rainfall binary grids via FTP.
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:30: * FTP server: hokusai.eorc.jaxa.jp (credentials required)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:41: // ── FTP config (env-overridable) ─────────────────────────────────────────
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:42: @Value("${jaxa.ftp.host:hokusai.eorc.jaxa.jp}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:43: private String ftpHost;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:45: @Value("${jaxa.ftp.user:}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:46: private String ftpUser;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:48: @Value("${jaxa.ftp.pass:}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:49: private String ftpPass;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:65: // FTP paths and file pattern candidates — gauge-calibrated products listed
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:67: private static final List<String> FTP_DIR_CANDIDATES = List.of(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:82: private static final int FTP_RETRY_COUNT = 3;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:83: private static final long FTP_RETRY_SLEEP = 60_000L;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:84: private static final int FTP_CONNECT_TIMEOUT_MS = 10_000;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:85: private static final int FTP_DATA_TIMEOUT_MS = 30_000;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:86: private static final int FTP_CONTROL_KEEPALIVE_TIMEOUT_S = 30;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:123: * @param targetHour the UTC hour to fetch (truncated to hour precision)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:167: // Private — FTP connect + download with retry
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:174: for (int attempt = 1; attempt <= FTP_RETRY_COUNT; attempt++) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:175: FTPClient ftp = new FTPClient();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:177: return downloadFile(ftp, tmpFile, targetHour);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:180: log.warn("[JAXA] FTP attempt {}/{} failed: {} — retrying in {}s",
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:181: attempt, FTP_RETRY_COUNT, e.getMessage(), FTP_RETRY_SLEEP / 1000);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:182: if (attempt < FTP_RETRY_COUNT) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:183: Thread.sleep(FTP_RETRY_SLEEP);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:186: disconnectFtp(ftp);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:189: throw new RuntimeException("[JAXA] All " + FTP_RETRY_COUNT
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:190: + " FTP attempts failed", lastException);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:193: private String downloadFile(FTPClient ftp, Path tmpFile, LocalDateTime targetHour)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:195: if (ftpUser == null || ftpUser.isBlank() || ftpPass == null || ftpPass.isBlank()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:196: throw new RuntimeException("[JAXA] FTP credentials are missing (JAXA_FTP_USER/JAXA_FTP_PASS)");
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:199: log.info("[JAXA] Connecting to FTP @{}", ftpHost);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:200: ftp.setConnectTimeout(FTP_CONNECT_TIMEOUT_MS);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:201: ftp.connect(ftpHost);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:202: boolean loggedIn = ftp.login(ftpUser, ftpPass);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:204: throw new RuntimeException("[JAXA] FTP login failed for host " + ftpHost);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:206: ftp.setFileType(FTP.BINARY_FILE_TYPE);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:207: ftp.enterLocalPassiveMode();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:208: ftp.setDataTimeout(java.time.Duration.ofMillis(FTP_DATA_TIMEOUT_MS));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:209: ftp.setControlKeepAliveTimeout(FTP_CONTROL_KEEPALIVE_TIMEOUT_S);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:215: for (String dir : FTP_DIR_CANDIDATES) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:216: FTPFile[] files = ftp.listFiles(dir);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:234: + String.join(", ", FTP_DIR_CANDIDATES));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:238: try (InputStream is = ftp.retrieveFileStream(selectedDir + selectedFile);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:241: throw new RuntimeException("[JAXA] FTP retrieve returned null stream for " + selectedFile);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:246: if (!ftp.completePendingCommand()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:247: throw new RuntimeException("[JAXA] FTP completePendingCommand failed for " + selectedFile);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:257: private String selectFile(FTPFile[] files, LocalDateTime targetHour, String targetToken) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:261: for (FTPFile f : files) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:424: private void bulkInsert(List<JaxaGridPoint> points, LocalDateTime timestampUtc) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:427: (timestamp_utc, grid_lat, grid_lon, rainfall_mm, product_type)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:429: ON CONFLICT (timestamp_utc, grid_lat, grid_lon) DO NOTHING
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:435: timestampUtc,
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:460: "DELETE FROM jaxa_rain_grid WHERE timestamp_utc < NOW() - INTERVAL '48 hours'");
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:470: private void disconnectFtp(FTPClient ftp) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:471: if (ftp != null && ftp.isConnected()) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:473: ftp.logout();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\JaxaGsmapClient.java:474: ftp.disconnect();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:24: * Excel URL: https://meteo.gov.lk/excels/3hourly.xlsx
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:26: * Timezone:  Report_Time is Sri Lanka Standard Time (UTC+5:30) — converted to UTC on parse.
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:33: private static final String EXCEL_URL = "https://meteo.gov.lk/excels/3hourly.xlsx";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:44: private static final DateTimeFormatter SLST_FORMATTER =
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:123: private LocalDateTime timestampUtc;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:147: // Parse SLST timestamp and convert to UTC (SLST = UTC+5:30)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:148: LocalDateTime slstTime = LocalDateTime.parse(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:150: SLST_FORMATTER);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:151: LocalDateTime utcTime = slstTime.minusHours(5).minusMinutes(30);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoGovLkClient.java:157: .timestampUtc(utcTime)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:24: private static final String BASE_URL = "https://meteo.gov.lk";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:62: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:78: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:92: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:131: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:148: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:192: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MeteoSLClient.java:205: result.put("fetchedAt", new Date().toInstant().toString());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MetSunriseClient.java:25: private static final String BASE_URL_SUN = "https://api.met.no/weatherapi/sunrise/3.0/sun";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\MetSunriseClient.java:26: private static final String BASE_URL_MOON = "https://api.met.no/weatherapi/sunrise/3.0/moon";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:10: import java.time.Instant;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:22: * API:  https://aviationweather.gov/api/data/metar?ids=VCBI,VCRI&format=json
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:35: "https://aviationweather.gov/api/data/metar?ids=VCBI,VCRI&format=json";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:104: private LocalDateTime timestampUtc;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:133: LocalDateTime timestampUtc;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:136: timestampUtc = LocalDateTime.ofInstant(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:137: Instant.ofEpochSecond(obsTimeNode.asLong()), ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:148: timestampUtc = LocalDateTime.ofInstant(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:149: Instant.parse(reportTime), ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\NoaaMetarClient.java:207: .timestampUtc(timestampUtc)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:17: import java.time.Instant;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:29: private static final String FORECAST_BASE = "https://api.open-meteo.com/v1/forecast";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:30: private static final String HISTORICAL_BASE = "https://historical-forecast-api.open-meteo.com/v1/forecast";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:31: private static final String AIR_QUALITY_BASE = "https://air-quality-api.open-meteo.com/v1/air-quality";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:32: private static final String ENSEMBLE_BASE = "https://ensemble-api.open-meteo.com/v1/ensemble";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:88: String url = "https://archive-api.open-meteo.com/v1/archive?latitude=" + lat + "&longitude=" + lng
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:114: final Instant requestStart = Instant.now();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:125: Instant attemptStart = Instant.now();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:136: Duration.between(attemptStart, Instant.now()).toMillis(),
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:137: Duration.between(requestStart, Instant.now()).toMillis(),
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:155: Duration.between(attemptStart, Instant.now()).toMillis(),
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\OpenMeteoClient.java:177: Duration.between(attemptStart, Instant.now()).toMillis(),
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\RivernetClient.java:25: private static final String BASE_URL = "https://api.rivernet.lk/cache-api.php";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:38: private static final String BASE_URL_COMPACT = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:39: private static final String BASE_URL_COMPLETE = "https://api.met.no/weatherapi/locationforecast/2.0/complete";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:108: // --- valid_from_utc ---
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:115: // --- instant details ---
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:116: JsonNode details = entry.path("data").path("instant").path("details");
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:166: .validFromUtc(validFrom)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\client\YrNoClient.java:216: private LocalDateTime validFromUtc;

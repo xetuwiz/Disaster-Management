@@ -1,0 +1,15 @@
+V1__create_enums.sql
+V11__ensure_spatial_forecast_snapshots_table.sql
+V12__add_relief_camp_and_incident_tables.sql
+V13__weather_engine_tables.sql
+V14__jaxa_rain_grid_integrity_fixes.sql
+V15__expand_node_timeseries_fields.sql
+V16__create_weather_node_celestial.sql
+V2__user_auth_tables.sql
+V3__spatial_weather_tables.sql
+V4__disaster_flood_tables.sql
+V5__analytics_alerts_content_tables.sql
+V6__postgis.sql
+V7__add_aqi_columns_to_weather_node_live_cache.sql
+V8__fix_rivernet_alert_levels_type.sql
+V9__add_spatial_forecast_snapshots.sql

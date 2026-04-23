@@ -63,6 +63,9 @@ public class SpatialUnit {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "elevation_m", columnDefinition = "numeric")
+    private Double elevationM;
+
     public String getDisplayName(String language) {
         if ("si".equals(language) && nameSinhala != null) return nameSinhala;
         if ("ta".equals(language) && nameTamil != null) return nameTamil;

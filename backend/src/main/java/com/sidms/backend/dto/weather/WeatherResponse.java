@@ -37,6 +37,7 @@ public class WeatherResponse {
     private Double capeJkg;
     // Condition
     private Integer weatherCode;
+    private String symbolCode;
     private Integer isDay;
     // Air quality
     private Double usAqi;

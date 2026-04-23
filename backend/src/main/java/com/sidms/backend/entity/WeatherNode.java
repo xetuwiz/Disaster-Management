@@ -34,7 +34,7 @@ public class WeatherNode {
     @Column(nullable = false)
     private Double lng;
 
-    @Column(name = "elevation_m")
+    @Column(name = "elevation_m", columnDefinition = "numeric")
     private Integer elevationM;
 
     @Enumerated(EnumType.STRING)
@@ -62,4 +62,13 @@ public class WeatherNode {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "bias_temp_c", columnDefinition = "numeric")
+    private Double biasTempC;
+
+    @Column(name = "bias_humidity_pct", columnDefinition = "numeric")
+    private Double biasHumidityPct;
+
+    @Column(name = "bias_wind_ms", columnDefinition = "numeric")
+    private Double biasWindMs;
 }

@@ -2,13 +2,16 @@ package com.sidms.backend.scheduler;
 
 import com.sidms.backend.client.OpenMeteoClient;
 import com.sidms.backend.config.ApiKeyConfig;
+import com.sidms.backend.entity.OpenmeteoForecastEnsemble;
 import com.sidms.backend.entity.WeatherNode;
 import com.sidms.backend.entity.WeatherNodeLiveCache;
 import com.sidms.backend.entity.WeatherNodeTelemetryLog;
 import com.sidms.backend.entity.SpatialForecastSnapshot;
 import com.sidms.backend.repository.ForecastProjectionRepository;
+import com.sidms.backend.repository.OpenmeteoForecastEnsembleRepository;
 import com.sidms.backend.repository.SpatialForecastSnapshotRepository;
 import com.sidms.backend.repository.SpatialUnitRepository;
+import com.sidms.backend.repository.SpatialUnitWeatherNodeMappingRepository;
 import com.sidms.backend.repository.WeatherNodeLiveCacheRepository;
 import com.sidms.backend.repository.WeatherNodeTelemetryLogRepository;
 import com.sidms.backend.repository.WeatherNodeRepository;
@@ -17,6 +20,7 @@ import com.sidms.backend.util.ApiKeyManager;
 import com.sidms.backend.util.CacheKeys;
 import com.sidms.backend.entity.ForecastProjection;
 import com.sidms.backend.entity.SpatialUnit;
+import com.sidms.backend.entity.SpatialUnitWeatherNodeMapping;
 import com.sidms.backend.entity.enums.SpatialType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,9 +32,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import com.sidms.backend.client.OpenWeatherMapClient;
+import com.sidms.backend.service.SyncStateService;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -42,18 +49,25 @@ import java.util.ArrayList;
 @RequiredArgsConstructor
 public class WeatherSyncScheduler {
 
+    private static final String JOB_NAME_CURRENT = "weather_sync";
+    private static final String JOB_NAME_FORECAST = "openmeteo_forecast_sync";
+    private static final Duration COOLDOWN_CURRENT = Duration.ofHours(6);
+    private static final Duration COOLDOWN_FORECAST = Duration.ofHours(6);
+
+    private final SyncStateService syncStateService;
     private final WeatherNodeRepository weatherNodeRepository;
     private final WeatherNodeLiveCacheRepository liveCacheRepository;
     private final ApiKeyConfig apiKeyConfig;
     private final OpenMeteoClient openMeteoClient;
     private final ApiKeyManager apiKeyManager;
-    private final OpenWeatherMapClient openWeatherMapClient;
     private final RedisTemplate<String, Object> redisTemplate;
     private final RedisTemplate<String, String> stringRedisTemplate;
     private final JdbcTemplate jdbcTemplate;
     private final SpatialUnitRepository spatialUnitRepository;
     private final ForecastProjectionRepository forecastProjectionRepository;
     private final SpatialForecastSnapshotRepository spatialForecastSnapshotRepository;
+    private final SpatialUnitWeatherNodeMappingRepository spatialUnitWeatherNodeMappingRepository;
+    private final OpenmeteoForecastEnsembleRepository openmeteoForecastEnsembleRepository;
     private final AnalyticsService analyticsService;
     private final WeatherNodeTelemetryLogRepository weatherNodeTelemetryLogRepository;
 
@@ -67,8 +81,8 @@ public class WeatherSyncScheduler {
     @Value("${app.sync.weather.current-enabled:true}")
     private boolean currentWeatherSyncEnabled;
 
-    @Value("${app.sync.weather.owm-fallback-max-calls-per-run:300}")
-    private int owmFallbackMaxCallsPerRun;
+    @Value("${app.sync.weather.openmeteo-fallback-enabled:false}")
+    private boolean openMeteoFallbackEnabled;
 
     @Value("${app.sync.weather.aqi-enabled:false}")
     private boolean aqiEnabled;
@@ -83,123 +97,32 @@ public class WeatherSyncScheduler {
     private int forecastMaxUnits;
 
     // ──────────────────────────────────────────────
-    // Main sync: every 30 minutes
+    // Open-Meteo Forecast & AQI Sync (runs 4 times a day)
     // ──────────────────────────────────────────────
-    @Scheduled(fixedDelayString = "${app.sync.weather.interval}", initialDelayString = "${app.sync.weather.initial-delay}")
-    public void scheduledSyncWeatherNodes() {
-        if (!weatherSyncEnabled) {
-            log.info("Weather scheduled sync disabled (app.sync.weather.enabled=false)");
-            return;
-        }
-        if (!currentWeatherSyncEnabled) {
-            log.info("Current weather scheduled sync disabled (app.sync.weather.current-enabled=false)");
-            return;
-        }
-        syncWeatherNodes();
-    }
-
+    @Scheduled(cron = "0 15 0,6,12,18 * * *") // Every 6 hours
     @Transactional
-    public void syncWeatherNodes() {
-        if (!currentWeatherSyncEnabled) {
-            log.info("Skipping current weather sync because app.sync.weather.current-enabled=false");
+    public void scheduledSyncWeatherForecasts() {
+        if (!syncStateService.shouldRun(JOB_NAME_FORECAST, COOLDOWN_FORECAST))
             return;
-        }
-
-        String runId = UUID.randomUUID().toString().substring(0, 8);
-        log.info("⏳ Weather sync started runId={}", runId);
-        long start = System.currentTimeMillis();
-
-        List<WeatherNode> activeNodes = weatherNodeRepository.findByIsActiveTrue();
-        if (activeNodes.isEmpty()) {
-            log.warn("No active weather nodes found – skipping sync");
-            return;
-        }
-
-        List<WeatherNode> standardNodes = activeNodes.stream()
-                .filter(n -> !Boolean.TRUE.equals(n.getIsVolatile()))
-                .collect(Collectors.toList());
-        List<WeatherNode> volatileNodes = activeNodes.stream()
-                .filter(n -> Boolean.TRUE.equals(n.getIsVolatile()))
-                .collect(Collectors.toList());
-
-        log.info("Weather sync runId={} nodes standard={} volatile={} fallbackBudget={} batchSize={}",
-                runId,
-                standardNodes.size(),
-                volatileNodes.size(),
-                owmFallbackMaxCallsPerRun,
-                apiKeyConfig.getBatchSize());
-
-        SyncStats stats = new SyncStats();
-        syncStandardNodes(standardNodes, stats, runId);
-        stats.owmVolatileCalls = syncVolatileNodes(volatileNodes);
-
-        // Re-evaluate volatile flags based on current conditions
-        reevaluateVolatileFlags();
-
-        // Log API usage
-        logApiUsage("open-meteo", apiKeyConfig.getOpenMeteoBaseUrl() + "/forecast", stats.openMeteoBatchCalls,
-                System.currentTimeMillis() - start);
-        int totalOwmCalls = stats.owmVolatileCalls + stats.owmFallbackCalls;
-        if (totalOwmCalls > 0) {
-            logApiUsage("openweathermap", "https://api.openweathermap.org/data/2.5/weather", totalOwmCalls,
-                    System.currentTimeMillis() - start);
-        }
-
-        log.info(
-                "✅ Weather sync completed runId={} in {}ms – {} Open-Meteo batches, {} OWM calls ({} volatile + {} fallback), AQI calls={} (enabled={} maxPerRun={}), {} nodes kept on stale cache",
-                runId,
-                System.currentTimeMillis() - start,
-                stats.openMeteoBatchCalls,
-                totalOwmCalls,
-                stats.owmVolatileCalls,
-                stats.owmFallbackCalls,
-                stats.aqiCalls,
-                aqiEnabled,
-                aqiMaxCallsPerRun,
-                stats.staleNodesRetained);
-
-        // After sync, update forecast actuals for all spatial units
-        updateAllForecastActuals();
-    }
-
-    private void updateAllForecastActuals() {
-        log.info("Updating forecast actuals for all tracked spatial units");
-        List<SpatialUnit> units = spatialUnitRepository.findByType(SpatialType.GN_DIVISION);
-        for (SpatialUnit unit : units) {
-            try {
-                // Get historical trend (last 30 days) to find finalized actuals
-                List<com.sidms.backend.dto.analytics.DailyWeatherDto> trend = analyticsService
-                        .computeHistoricalTrend(unit.getId());
-                for (com.sidms.backend.dto.analytics.DailyWeatherDto day : trend) {
-                    // Only update for past dates that are likely finalized
-                    if (day.getDate().isBefore(java.time.LocalDate.now())) {
-                        if (day.getPrecipMm() != null) {
-                            analyticsService.updateForecastWithActuals(unit.getId(), "precipitation", day.getDate(),
-                                    day.getPrecipMm());
-                        }
-                        if (day.getTempMean() != null) {
-                            analyticsService.updateForecastWithActuals(unit.getId(), "temperature", day.getDate(),
-                                    day.getTempMean());
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("Skip actuals update for unit {}: {}", unit.getName(), e.getMessage());
+        try {
+            if (!weatherSyncEnabled) {
+                log.info("Skipping forecast sync because app.sync.weather.enabled=false");
+                syncStateService.recordSuccess(JOB_NAME_FORECAST, COOLDOWN_FORECAST);
+                return;
             }
+            syncWeatherForecasts();
+            syncAqiData();
+            reevaluateVolatileFlags();
+            updateAllForecastActuals();
+            syncStateService.recordSuccess(JOB_NAME_FORECAST, COOLDOWN_FORECAST);
+        } catch (Exception e) {
+            log.error("[{}] Sync failed: {}", JOB_NAME_FORECAST, e.getMessage(), e);
+            syncStateService.recordFailure(JOB_NAME_FORECAST, COOLDOWN_FORECAST, e.getMessage());
         }
     }
 
-    // Actually, reflection is messy. Let's just make computeHistoricalTrend public
-    // in AnalyticsService or re-implement here.
-    // Fixed below in follow-up.
-
-    @Scheduled(cron = "0 30 1 * * *") // Every day at 01:30 AM
     @Transactional
     public void syncWeatherForecasts() {
-        if (!weatherSyncEnabled) {
-            log.info("Skipping forecast sync because app.sync.weather.enabled=false");
-            return;
-        }
         String runId = UUID.randomUUID().toString().substring(0, 8);
         log.info("⏳ Scheduled forecast sync started runId={}", runId);
         Set<UUID> syncedUnitIds = new HashSet<>();
@@ -230,10 +153,9 @@ public class WeatherSyncScheduler {
 
                 String lats = batch.stream().map(u -> String.valueOf(u.getLat())).collect(Collectors.joining(","));
                 String lngs = batch.stream().map(u -> String.valueOf(u.getLng())).collect(Collectors.joining(","));
-                String params = "current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,is_day"
-                        + "&hourly=temperature_2m,weather_code,precipitation,relative_humidity_2m"
-                        + "&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,uv_index_max"
-                        + "&forecast_days=7&timezone=auto";
+                String params = "daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
+                        + "precipitation_sum,precipitation_probability_max,weather_code"
+                        + "&forecast_days=14&timezone=auto";
 
                 JsonNode root = openMeteoClient.getCurrentBatch(lats, lngs, params);
                 if (root == null)
@@ -307,16 +229,61 @@ public class WeatherSyncScheduler {
                 // Create projection entry
                 ForecastProjection projection = ForecastProjection.builder()
                         .spatialUnitId(unit.getId())
-                        .forecastDate(java.time.LocalDate.now())
+                        .forecastDate(java.time.LocalDate.now(ZoneOffset.UTC))
                         .metric("precipitation")
                         .pointEstimate(predictions.isEmpty() ? 0.0 : predictions.get(0))
-                        .generatedAt(LocalDateTime.now())
+                        .generatedAt(LocalDateTime.now(ZoneOffset.UTC))
                         .horizonDays(predictions.size())
                         .build();
 
                 projection = forecastProjectionRepository.save(projection);
                 analyticsService.saveForecastsForComparison(unit.getId(), projection.getId(), "precipitation",
                         predictions, null, null);
+            }
+
+            // ── Ensemble percentiles — days 8-14 only (days 0-6 are reliable ECMWF) ──
+            if (times != null && times.isArray() && daily.has("temperature_2m_max_p50")) {
+                // Resolve the primary (rank=1) node for this spatial unit
+                List<SpatialUnitWeatherNodeMapping> mappings = spatialUnitWeatherNodeMappingRepository
+                        .findBySpatialUnitIdOrderByRankAsc(unit.getId());
+                UUID primaryNodeId = mappings.isEmpty() ? null : mappings.get(0).getWeatherNodeId();
+
+                if (primaryNodeId != null) {
+                    for (int i = 7; i < Math.min(times.size(), 14); i++) {
+                        try {
+                            LocalDate forecastDate = LocalDate.parse(times.get(i).asText());
+
+                            // Upsert: load existing row if present, otherwise create new
+                            OpenmeteoForecastEnsemble ens = openmeteoForecastEnsembleRepository
+                                    .findByNodeIdAndForecastDate(primaryNodeId, forecastDate)
+                                    .orElseGet(() -> OpenmeteoForecastEnsemble.builder()
+                                            .nodeId(primaryNodeId)
+                                            .forecastDate(forecastDate)
+                                            .createdAt(LocalDateTime.now(ZoneOffset.UTC))
+                                            .build());
+
+                            // Fallback: Use standard min/max as P50 since we dropped the ensemble endpoint call to save API limits.
+                            Double minTemp = getDoubleAt(daily, "temperature_2m_min", i);
+                            Double maxTemp = getDoubleAt(daily, "temperature_2m_max", i);
+                            Double rainProb = getDoubleAt(daily, "precipitation_probability_max", i);
+
+                            if (minTemp != null) {
+                                ens.setTempMinP50(BigDecimal.valueOf(minTemp));
+                            }
+                            if (maxTemp != null) {
+                                ens.setTempMaxP50(BigDecimal.valueOf(maxTemp));
+                            }
+                            if (rainProb != null) {
+                                ens.setPrecipitationProbability(BigDecimal.valueOf(rainProb));
+                            }
+
+                            openmeteoForecastEnsembleRepository.save(ens);
+                        } catch (Exception e) {
+                            log.warn("[WeatherSyncScheduler] Failed saving ensemble for unit={} day={}: {}",
+                                    unit.getId(), i, e.getMessage());
+                        }
+                    }
+                }
             }
         }
     }
@@ -327,7 +294,7 @@ public class WeatherSyncScheduler {
         }
 
         try {
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
             SpatialForecastSnapshot snapshot = spatialForecastSnapshotRepository
                     .findBySpatialUnitId(unit.getId())
                     .orElseGet(() -> SpatialForecastSnapshot.builder()
@@ -360,154 +327,32 @@ public class WeatherSyncScheduler {
     }
 
     // ──────────────────────────────────────────────
-    // Standard nodes → Open-Meteo batch
+    // AQI Sync
     // ──────────────────────────────────────────────
-    private void syncStandardNodes(List<WeatherNode> nodes, SyncStats stats, String runId) {
-        if (nodes.isEmpty())
-            return;
+    private void syncAqiData() {
+        if (!aqiEnabled) return;
+        List<WeatherNode> activeNodes = weatherNodeRepository.findByIsActiveTrue();
+        if (activeNodes.isEmpty()) return;
 
-        int batchSize = apiKeyConfig.getBatchSize();
-        int fallbackBudget = Math.max(0, owmFallbackMaxCallsPerRun);
-        int[] aqiBudget = new int[] { Math.max(0, aqiMaxCallsPerRun) };
+        log.info("⏳ AQI sync started for {} nodes", activeNodes.size());
+        int calls = 0;
+        int budget = Math.max(0, aqiMaxCallsPerRun);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
-        for (int i = 0; i < nodes.size(); i += batchSize) {
-            List<WeatherNode> batch = nodes.subList(i, Math.min(i + batchSize, nodes.size()));
-            Instant batchStart = Instant.now();
-            try {
-                if (verboseSyncDebug) {
-                    log.info("OpenMeteo sync runId={} batchStart={} batchSize={} firstNode={}",
-                            runId,
-                            i,
-                            batch.size(),
-                            batch.isEmpty() ? "-" : batch.get(0).getCode());
-                }
-                syncOpenMeteoBatch(batch, stats, aqiBudget);
-                stats.openMeteoBatchCalls++;
-                if (verboseSyncDebug) {
-                    log.info("OpenMeteo sync runId={} batchDone={} elapsedMs={}",
-                            runId,
-                            i,
-                            Duration.between(batchStart, Instant.now()).toMillis());
-                }
-            } catch (Exception e) {
-                log.error("Open-Meteo batch sync failed runId={} batchStart={} batchSize={} elapsedMs={} message={}",
-                        runId,
-                        i,
-                        batch.size(),
-                        Duration.between(batchStart, Instant.now()).toMillis(),
-                        e.getMessage());
-                if (fallbackBudget > 0) {
-                    int used = fallbackBatchToOwm(batch, fallbackBudget);
-                    fallbackBudget -= used;
-                    stats.owmFallbackCalls += used;
-                    int stale = Math.max(0, batch.size() - used);
-                    stats.staleNodesRetained += stale;
-                    if (stale > 0) {
-                        log.warn(
-                                "OWM fallback budget exhausted or failed for {} node(s) in batch starting at index {}. Retaining stale DB/cache data.",
-                                stale, i);
-                    }
-                } else {
-                    stats.staleNodesRetained += batch.size();
-                    log.warn(
-                            "No OWM fallback budget left for batch starting at index {}. Retaining stale DB/cache data.",
-                            i);
-                }
-            }
-        }
-    }
-
-    private void syncOpenMeteoBatch(List<WeatherNode> batch, SyncStats stats, int[] aqiBudget) {
-        Instant start = Instant.now();
-        String latitudes = batch.stream().map(n -> String.valueOf(n.getLat())).collect(Collectors.joining(","));
-        String longitudes = batch.stream().map(n -> String.valueOf(n.getLng())).collect(Collectors.joining(","));
-
-        String currentParams = "current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m," +
-                "precipitation,rain,showers,snowfall,wind_speed_10m,wind_gusts_10m,wind_direction_10m," +
-                "cloud_cover,visibility,pressure_msl,uv_index,cape,weather_code," +
-                "precipitation_probability,is_day" +
-                "&hourly=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,pressure_msl,cloud_cover,dew_point_2m,weather_code,precipitation_probability"
-                +
-                "&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,sunrise,sunset,uv_index_max"
-                +
-                "&forecast_days=7&past_days=1&timezone=auto";
-
-        JsonNode root = openMeteoClient.getCurrentBatch(latitudes, longitudes, currentParams);
-        if (root == null) {
-            log.warn("Open-Meteo returned null payload for batchSize={} elapsedMs={}",
-                    batch.size(),
-                    Duration.between(start, Instant.now()).toMillis());
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-
-        // Single node response is an object, multi-node is an array
-        if (root.isArray()) {
-            for (int j = 0; j < root.size() && j < batch.size(); j++) {
-                parseAndUpsertOpenMeteo(batch.get(j), root.get(j), now, root.toString());
-            }
-        } else {
-            // Single node in batch
-            if (!batch.isEmpty()) {
-                parseAndUpsertOpenMeteo(batch.get(0), root, now, root.toString());
-            }
-        }
-
-        if (verboseSyncDebug) {
-            log.info("Open-Meteo batch processed batchSize={} responseShape={} responseItems={} elapsedMs={}",
-                    batch.size(),
-                    root.isArray() ? "ARRAY" : "OBJECT",
-                    root.isArray() ? root.size() : 1,
-                    Duration.between(start, Instant.now()).toMillis());
-        }
-
-        if (!aqiEnabled || aqiBudget[0] <= 0) {
-            return;
-        }
-
-        // AQI is expensive: cap calls per sync run to avoid quota burn.
-        for (WeatherNode node : batch) {
-            if (aqiBudget[0] <= 0) {
-                break;
-            }
+        for (WeatherNode node : activeNodes) {
+            if (budget <= 0) break;
             try {
                 JsonNode aqiData = openMeteoClient.getAirQualityCurrent(node.getLat(), node.getLng());
                 if (aqiData != null) {
                     updateAqiData(node.getId(), aqiData, now);
-                    stats.aqiCalls++;
+                    calls++;
                 }
-                aqiBudget[0]--;
+                budget--;
             } catch (Exception e) {
                 log.debug("AQI fetch skipped for node {}: {}", node.getCode(), e.getMessage());
             }
         }
-    }
-
-    private int fallbackBatchToOwm(List<WeatherNode> batch, int maxCalls) {
-        if (maxCalls <= 0 || batch.isEmpty()) {
-            return 0;
-        }
-
-        int calls = 0;
-        for (WeatherNode node : batch) {
-            if (calls >= maxCalls) {
-                break;
-            }
-
-            try {
-                JsonNode root = openWeatherMapClient.getCurrentWeather(node.getLat(), node.getLng());
-                if (root == null) {
-                    continue;
-                }
-                parseAndUpsertOwm(node, root, root.toString());
-                calls++;
-            } catch (Exception e) {
-                log.warn("OWM fallback failed for node {}: {}", node.getCode(), e.getMessage());
-            }
-        }
-
-        return calls;
+        log.info("✅ AQI sync completed, {} calls made", calls);
     }
 
     private void updateAqiData(UUID nodeId, JsonNode aqiData, LocalDateTime now) {
@@ -522,128 +367,39 @@ public class WeatherSyncScheduler {
         if (aqi != null || pm10 != null || pm25 != null) {
             jdbcTemplate.update(
                     "UPDATE weather_node_live_cache SET us_aqi = COALESCE(?, us_aqi), " +
-                            "pm10 = COALESCE(?, pm10), pm2_5 = COALESCE(?, pm2_5) " +
+                            "pm10 = COALESCE(?, pm10), pm2_5 = COALESCE(?, pm2_5), updated_at = ? " +
                             "WHERE weather_node_id = ?",
-                    aqi, pm10, pm25, nodeId);
+                    aqi, pm10, pm25, now, nodeId);
         }
     }
 
-    private void parseAndUpsertOpenMeteo(WeatherNode node, JsonNode data, LocalDateTime now, String rawPayload) {
-        JsonNode current = data.path("current");
-        if (current.isMissingNode())
-            return;
-
-        WeatherNodeLiveCache cache = WeatherNodeLiveCache.builder()
-                .weatherNodeId(node.getId())
-                .sourceApi("open-meteo")
-                .fetchedAt(now)
-                .tempC(getDouble(current, "temperature_2m"))
-                .apparentTempC(getDouble(current, "apparent_temperature"))
-                .humidityPct(getDouble(current, "relative_humidity_2m"))
-                .pressureHpa(getDouble(current, "pressure_msl"))
-                .precipitationMm(getDouble(current, "precipitation"))
-                .precipProbability(getDouble(current, "precipitation_probability"))
-                .rainMm(getDouble(current, "rain"))
-                .windSpeedKmh(getDouble(current, "wind_speed_10m"))
-                .windGustKmh(getDouble(current, "wind_gusts_10m"))
-                .windDirectionDeg(getDouble(current, "wind_direction_10m"))
-                .cloudCoverPct(getDouble(current, "cloud_cover"))
-                .visibilityM(getDouble(current, "visibility"))
-                .uvIndex(getDouble(current, "uv_index"))
-                .capeJkg(getDouble(current, "cape"))
-                .weatherCode(getInt(current, "weather_code"))
-                .rawPayload(rawPayload)
-                .updatedAt(now)
-                .build();
-
-        liveCacheRepository.save(cache);
-
-        // Insert telemetry log
-        WeatherNodeTelemetryLog telemetry = WeatherNodeTelemetryLog.builder()
-                .weatherNodeId(node.getId())
-                .loggedAt(now)
-                .sourceApi("open-meteo")
-                .tempC(cache.getTempC())
-                .precipitationMm(cache.getPrecipitationMm())
-                .precipProbability(cache.getPrecipProbability())
-                .rainMm(cache.getRainMm())
-                .humidityPct(cache.getHumidityPct())
-                .windSpeedKmh(cache.getWindSpeedKmh())
-                .cloudCoverPct(cache.getCloudCoverPct())
-                .capeJkg(cache.getCapeJkg())
-                .uvIndex(cache.getUvIndex())
-                .build();
-
-        weatherNodeTelemetryLogRepository.save(telemetry);
-    }
-
-    // ──────────────────────────────────────────────
-    // Volatile nodes → OpenWeatherMap (round-robin keys)
-    // ──────────────────────────────────────────────
-    private int syncVolatileNodes(List<WeatherNode> nodes) {
-        if (nodes.isEmpty())
-            return 0;
-
-        int callCount = 0;
-
-        for (WeatherNode node : nodes) {
+    private void updateAllForecastActuals() {
+        log.info("Updating forecast actuals for all tracked spatial units");
+        List<SpatialUnit> units = spatialUnitRepository.findByType(SpatialType.GN_DIVISION);
+        for (SpatialUnit unit : units) {
             try {
-                JsonNode root = openWeatherMapClient.getCurrentWeather(node.getLat(), node.getLng());
-                if (root == null)
-                    continue;
-
-                parseAndUpsertOwm(node, root, root.toString());
-                callCount++;
+                // Get historical trend (last 30 days) to find finalized actuals
+                List<com.sidms.backend.dto.analytics.DailyWeatherDto> trend = analyticsService
+                        .computeHistoricalTrend(unit.getId());
+                for (com.sidms.backend.dto.analytics.DailyWeatherDto day : trend) {
+                    // Only update for past dates that are likely finalized
+                    if (day.getDate().isBefore(java.time.LocalDate.now(ZoneOffset.UTC))) {
+                        if (day.getPrecipMm() != null) {
+                            analyticsService.updateForecastWithActuals(unit.getId(), "precipitation", day.getDate(),
+                                    day.getPrecipMm());
+                        }
+                        if (day.getTempMean() != null) {
+                            analyticsService.updateForecastWithActuals(unit.getId(), "temperature", day.getDate(),
+                                    day.getTempMean());
+                        }
+                    }
+                }
             } catch (Exception e) {
-                log.error("OWM sync failed for node {}: {}", node.getCode(), e.getMessage());
+                log.debug("Skip actuals update for unit {}: {}", unit.getName(), e.getMessage());
             }
         }
-        return callCount;
     }
 
-    private void parseAndUpsertOwm(WeatherNode node, JsonNode root, String rawPayload) {
-        LocalDateTime now = LocalDateTime.now();
-        JsonNode main = root.path("main");
-        JsonNode wind = root.path("wind");
-        JsonNode clouds = root.path("clouds");
-
-        WeatherNodeLiveCache cache = WeatherNodeLiveCache.builder()
-                .weatherNodeId(node.getId())
-                .sourceApi("openweathermap")
-                .fetchedAt(now)
-                .tempC(getDouble(main, "temp"))
-                .apparentTempC(getDouble(main, "feels_like"))
-                .humidityPct(getDouble(main, "humidity"))
-                .pressureHpa(getDouble(main, "pressure"))
-                .precipitationMm(getDouble(root.path("rain"), "1h"))
-                .windSpeedKmh(multiplyOrNull(getDouble(wind, "speed"), 3.6)) // m/s → km/h
-                .windGustKmh(multiplyOrNull(getDouble(wind, "gust"), 3.6))
-                .windDirectionDeg(getDouble(wind, "deg"))
-                .cloudCoverPct(getDouble(clouds, "all"))
-                .visibilityM(getDouble(root, "visibility"))
-                .weatherCode(getInt(root.path("weather").path(0), "id"))
-                .rawPayload(rawPayload)
-                .updatedAt(now)
-                .build();
-
-        liveCacheRepository.save(cache);
-
-        // Insert telemetry log
-        WeatherNodeTelemetryLog telemetry = WeatherNodeTelemetryLog.builder()
-                .weatherNodeId(node.getId())
-                .loggedAt(now)
-                .sourceApi("openweathermap")
-                .tempC(cache.getTempC())
-                .precipitationMm(cache.getPrecipitationMm())
-                .humidityPct(cache.getHumidityPct())
-                .windSpeedKmh(cache.getWindSpeedKmh())
-                .cloudCoverPct(cache.getCloudCoverPct())
-                .capeJkg(cache.getCapeJkg())
-                .uvIndex(cache.getUvIndex())
-                .build();
-
-        weatherNodeTelemetryLogRepository.save(telemetry);
-    }
 
     // ──────────────────────────────────────────────
     // Re-evaluate volatile flag
@@ -710,10 +466,21 @@ public class WeatherSyncScheduler {
         return value == null ? null : value * factor;
     }
 
+    /**
+     * Safely extracts a Double from {@code daily.get(field).get(index)}.
+     * Returns null if the field is missing, the index is out of bounds, or the
+     * value is null/NaN.
+     */
+    private Double getDoubleAt(JsonNode daily, String field, int index) {
+        JsonNode arr = daily.path(field);
+        if (arr.isMissingNode() || !arr.isArray() || index >= arr.size())
+            return null;
+        JsonNode val = arr.get(index);
+        return (val == null || val.isNull()) ? null : val.asDouble();
+    }
+
     private static class SyncStats {
         int openMeteoBatchCalls;
-        int owmVolatileCalls;
-        int owmFallbackCalls;
         int aqiCalls;
         int staleNodesRetained;
     }

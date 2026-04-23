@@ -142,6 +142,27 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-hibernate6</artifactId>
         </dependency>
+
+        <!-- Apache POI — xlsx parsing (Meteo.gov.lk Excel download) -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+
+        <!-- Commons IO — byte-stream utilities -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.15.1</version>
+        </dependency>
+
+        <!-- Apache Commons Net — FTP client (JAXA GSMaP download) -->
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.10.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -178,11 +199,25 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>10.10.0</version>
                 <configuration>
-                    <url>jdbc:postgresql://localhost:5432/climasphere</url>
-                    <user>climasphere_user</user>
-                    <password>climasphere_pass</password>
+                    <url>jdbc:postgresql://localhost:5432/sidms</url>
+                    <user>sidms_user</user>
+                    <password>sidms_pass</password>
                 </configuration>
             </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.flywaydb</groupId>-->
+<!--                <artifactId>flyway-maven-plugin</artifactId>-->
+<!--                <version>10.10.0</version>-->
+<!--                <configuration>-->
+<!--                    <url>jdbc:postgresql://104.208.67.128:5432/river_levels_copy</url>-->
+<!--                    <user>river_user</user>-->
+<!--                    <password>ITP_SE_03</password>-->
+<!--                    <cleanDisabled>false</cleanDisabled>-->
+<!--                    <locations>-->
+<!--                        <location>filesystem:src/main/resources/db/migration</location>-->
+<!--                    </locations>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 </project>

@@ -1,0 +1,135 @@
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:27: private static final String   JOB_NAME = "alert_evaluation";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:28: private static final Duration COOLDOWN  = Duration.ofMinutes(15);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:40: @Scheduled(fixedDelayString = "${app.sync.alerts.interval}", initialDelayString = "${app.sync.alerts.initial-delay}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:43: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:46: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:49: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:75: // 2. Check cooldown
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:76: if (isInCooldown(rule)) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:119: rule.setLastTriggeredAt(LocalDateTime.now(ZoneOffset.UTC));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:162: // Cooldown check
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:164: private boolean isInCooldown(AlertRule rule) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:165: if (rule.getLastTriggeredAt() == null || rule.getCooldownHours() == null) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:169: .plusHours(rule.getCooldownHours())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\AlertRuleEvaluator.java:170: .isAfter(LocalDateTime.now(ZoneOffset.UTC));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\ArcGisSyncScheduler.java:58: @Scheduled(fixedRate = 900_000)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\ArcGisSyncScheduler.java:96: .observationTime(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\ArcGisSyncScheduler.java:97: .fetchedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\ArcGisSyncScheduler.java:108: .observationTime(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\ArcGisSyncScheduler.java:109: .fetchedAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:50: private static final String   JOB_NAME    = "bias_recalc_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:51: private static final Duration COOLDOWN    = Duration.ofHours(6);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:71: @Scheduled(cron = "0 30 0,6,12,18 * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:73: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:76: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:78: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:79: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:92: LocalDateTime         windowFrom = LocalDateTime.now().minus(OBS_WINDOW);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:102: .findTopByStationIdAndTimestampUtcAfterOrderByTimestampUtcDesc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:162: .timestampUtc(obs.getTimestampUtc())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\BiasRecalculationScheduler.java:163: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:25: private static final String   JOB_NAME = "cache_warming";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:26: private static final Duration COOLDOWN  = Duration.ofMinutes(15);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:39: @Scheduled(fixedDelayString = "${app.sync.warming.interval}", initialDelayString = "${app.sync.warming.initial-delay}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:41: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:44: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:46: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\CacheWarmingScheduler.java:47: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:41: private static final String JOB_NAME = "flood_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:42: private static final Duration COOLDOWN = Duration.ofMinutes(15);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:56: @Scheduled(cron = "0 0/15 * * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:62: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:66: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:68: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:69: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:109: LocalDateTime recordedAt = LocalDateTime.now();
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:151: reading.setFetchedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:209: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:225: device.setLastSyncedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\FloodSyncScheduler.java:226: device.setUpdatedAt(LocalDateTime.now());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:34: private static final String   JOB_NAME = "historical_backfill";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:35: private static final Duration COOLDOWN  = Duration.ofHours(20);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:50: @Scheduled(cron = "0 0 2 * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:53: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:56: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:58: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:59: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:78: LocalDate yesterday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:180: .createdAt(LocalDateTime.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:231: .createdAt(LocalDateTime.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\HistoricalBackfillScheduler.java:284: LocalDate today = LocalDate.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:24: * Cooldown: 1 hour — prevents double-downloads if triggered manually.
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:31: private static final String JOB_NAME = "jaxa_gsmap_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:32: private static final Duration COOLDOWN = Duration.ofHours(1);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:42: @Scheduled(cron = "0 5 * * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:48: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:52: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:54: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:55: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\JaxaGsmapSyncScheduler.java:65: LocalDateTime targetHour = LocalDateTime.now(java.time.ZoneOffset.UTC)
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:30: private static final String JOB_NAME = "met_celestial_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:32: private static final Duration COOLDOWN = Duration.ofHours(20);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:42: @Scheduled(cron = "0 5 0 * * *") // Run at 00:05 everyday
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:44: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:48: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:52: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:54: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:55: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MetCelestialSyncScheduler.java:71: LocalDate today = LocalDate.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:29: private static final String   JOB_NAME = "meteo_gov_lk_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:30: private static final Duration COOLDOWN = Duration.ofHours(3);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:47: @Scheduled(cron = "0 15 */3 * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:49: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:52: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:54: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:55: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:73: if (stationObservationRepository.existsByStationIdAndTimestampUtc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:74: reading.getStationId(), reading.getTimestampUtc())) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:84: reading.getStationId(), reading.getTimestampUtc(), e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:98: .timestampUtc(r.getTimestampUtc())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoStationSyncScheduler.java:105: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoSyncScheduler.java:18: private static final String JOB_NAME = "meteo_content_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoSyncScheduler.java:19: private static final Duration COOLDOWN = Duration.ofMinutes(15);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoSyncScheduler.java:28: @Scheduled(fixedDelayString = "${app.sync.meteo.interval}", initialDelayString = "${app.sync.meteo.initial-delay}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoSyncScheduler.java:30: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoSyncScheduler.java:44: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\MeteoSyncScheduler.java:47: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:30: private static final String   JOB_NAME = "noaa_metar_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:31: private static final Duration COOLDOWN = Duration.ofMinutes(30);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:44: @Scheduled(cron = "0 */30 * * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:46: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN)) return;
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:49: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:51: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:52: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:70: if (stationObservationRepository.existsByStationIdAndTimestampUtc(
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:71: reading.getStationId(), reading.getTimestampUtc())) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:81: reading.getStationId(), reading.getTimestampUtc(), e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:95: .timestampUtc(r.getTimestampUtc())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\NoaaMetarSyncScheduler.java:103: .createdAt(LocalDateTime.now())
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:52: private static final String JOB_NAME_CURRENT = "weather_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:53: private static final String JOB_NAME_FORECAST = "openmeteo_forecast_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:54: private static final Duration COOLDOWN_CURRENT = Duration.ofHours(6);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:55: private static final Duration COOLDOWN_FORECAST = Duration.ofHours(6);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:102: @Scheduled(cron = "0 15 0,6,12,18 * * *") // Every 6 hours
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:105: if (!syncStateService.shouldRun(JOB_NAME_FORECAST, COOLDOWN_FORECAST))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:110: syncStateService.recordSuccess(JOB_NAME_FORECAST, COOLDOWN_FORECAST);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:117: syncStateService.recordSuccess(JOB_NAME_FORECAST, COOLDOWN_FORECAST);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:119: log.error("[{}] Sync failed: {}", JOB_NAME_FORECAST, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:120: syncStateService.recordFailure(JOB_NAME_FORECAST, COOLDOWN_FORECAST, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:232: .forecastDate(java.time.LocalDate.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:235: .generatedAt(LocalDateTime.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:262: .createdAt(LocalDateTime.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:297: LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:340: LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:386: if (day.getDate().isBefore(java.time.LocalDate.now(ZoneOffset.UTC))) {
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\WeatherSyncScheduler.java:425: @Scheduled(fixedDelayString = "${app.sync.weather.interval}", initialDelayString = "${app.sync.cache-evict.initial-delay}")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:43: private static final String JOB_NAME = "yrno_sync";
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:44: private static final Duration COOLDOWN = Duration.ofHours(6);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:60: @Scheduled(cron = "0 0 0,6,12,18 * * *")
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:62: if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:66: syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:68: log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:69: syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:172: cache.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:179: .loggedAt(LocalDateTime.now(ZoneOffset.UTC))
+C:\catacolite\Disaster-Management\backend\src\main\java\com\sidms\backend\scheduler\YrNoSyncScheduler.java:274: .createdAt(LocalDateTime.now(ZoneOffset.UTC))

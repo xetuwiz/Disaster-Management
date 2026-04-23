@@ -12,6 +12,8 @@ import com.sidms.backend.scheduler.FloodSyncScheduler;
 import com.sidms.backend.scheduler.CacheWarmingScheduler;
 import com.sidms.backend.scheduler.AlertRuleEvaluator;
 import com.sidms.backend.scheduler.ArcGisSyncScheduler;
+import com.sidms.backend.scheduler.MetCelestialSyncScheduler;
+import com.sidms.backend.scheduler.YrNoSyncScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,8 @@ public class AdminSetupController {
     private final AlertRuleEvaluator alertRuleEvaluator;
     private final ArcGisSyncScheduler arcGisSyncScheduler;
     private final SchedulerAdminService schedulerAdminService;
+    private final MetCelestialSyncScheduler metCelestialSyncScheduler;
+    private final YrNoSyncScheduler yrNoSyncScheduler;
 
     // ──────────────────────────────────────────────
     // Spatial import
@@ -159,7 +163,7 @@ public class AdminSetupController {
     public ResponseEntity<Map<String, Object>> syncWeather() {
         CompletableFuture.runAsync(() -> {
             try {
-                weatherSyncScheduler.syncWeatherNodes();
+                yrNoSyncScheduler.doSync();
             } catch (Exception e) {
                 log.error("Async weather sync failed: {}", e.getMessage());
             }
@@ -308,7 +312,8 @@ public class AdminSetupController {
             case "generate-nodes" -> task = weatherNodeGeneratorService::generateNodes;
             case "compute-idw" -> task = idwComputationService::computeAll;
             case "backfill-history" -> task = () -> historicalBackfillScheduler.backfillLastNDays(days);
-            case "sync-weather" -> task = weatherSyncScheduler::syncWeatherNodes;
+            case "sync-weather" -> task = yrNoSyncScheduler::doSync;
+            case "sync-celestial" -> task = metCelestialSyncScheduler::syncCelestialData;
             case "sync-forecasts" -> task = weatherSyncScheduler::syncWeatherForecasts;
             case "evict-cache" -> task = weatherSyncScheduler::evictWeatherCaches;
             case "sync-meteo" -> task = meteoSyncScheduler::syncMeteoContent;

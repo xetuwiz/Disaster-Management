@@ -161,6 +161,7 @@ public class WeatherNodeAdminService {
                 .uvIndex(cache.getUvIndex())
                 .capeJkg(cache.getCapeJkg())
                 .weatherCode(cache.getWeatherCode())
+                .symbolCode(cache.getSymbolCode())
                 .usAqi(cache.getUsAqi())
                 .pm10(cache.getPm10())
                 .pm25(cache.getPm25());

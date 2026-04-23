@@ -13,6 +13,7 @@ import com.sidms.backend.entity.enums.SpatialType;
 import com.sidms.backend.entity.enums.DisasterCategory;
 import com.sidms.backend.entity.enums.DisasterSeverity;
 import com.sidms.backend.service.DisasterWarningService;
+import com.sidms.backend.service.SyncStateService;
 import com.sidms.backend.util.CacheKeys;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +38,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FloodSyncScheduler {
 
+    private static final String JOB_NAME = "flood_sync";
+    private static final Duration COOLDOWN = Duration.ofMinutes(15);
+
     private final FloodGaugeReadingRepository floodGaugeReadingRepository;
     private final RivernetDeviceRepository rivernetDeviceRepository;
     private final SpatialUnitRepository spatialUnitRepository;
@@ -43,11 +48,37 @@ public class FloodSyncScheduler {
     private final ArcGISClient arcGISClient;
     private final RivernetClient rivernetClient;
     private final StringRedisTemplate stringRedisTemplate;
+    private final SyncStateService syncStateService;
+
+    // ──────────────────────────────────────────────
+    // Flood sync orchestrator: every 15 minutes
+    // ──────────────────────────────────────────────
+    @Scheduled(cron = "0 0/15 * * * *")
+    public void scheduledFloodSync() {
+        runWithStateTracking();
+    }
+
+    public void runWithStateTracking() {
+        if (!syncStateService.shouldRun(JOB_NAME, COOLDOWN))
+            return;
+        try {
+            runFullSync();
+            syncStateService.recordSuccess(JOB_NAME, COOLDOWN);
+        } catch (Exception e) {
+            log.error("[{}] Sync failed: {}", JOB_NAME, e.getMessage(), e);
+            syncStateService.recordFailure(JOB_NAME, COOLDOWN, e.getMessage());
+            throw e;
+        }
+    }
+
+    public void runFullSync() {
+        syncFloodGauges();
+        syncRivernetDevices();
+    }
 
     // ──────────────────────────────────────────────
     // Flood gauge sync: every 15 minutes
     // ──────────────────────────────────────────────
-    @Scheduled(fixedDelay = 900000)
     @Transactional
     public void syncFloodGauges() {
         log.info("⏳ Flood gauge sync started");
@@ -76,7 +107,8 @@ public class FloodSyncScheduler {
 
                     // Determine recorded_at from epoch or current time
                     LocalDateTime recordedAt = LocalDateTime.now();
-                    Object timeVal = firstNonNullMap(attrs, "CreationDate", "RecordedAt", "RECORDED_AT", "recorded_at", "DateTime");
+                    Object timeVal = firstNonNullMap(attrs, "CreationDate", "RecordedAt", "RECORDED_AT", "recorded_at",
+                            "DateTime");
                     if (timeVal instanceof Number) {
                         long ts = ((Number) timeVal).longValue();
                         // ArcGIS timestamps are usually milliseconds
@@ -136,13 +168,13 @@ public class FloodSyncScheduler {
             log.info("✅ Flood gauge sync completed – {} readings upserted", upsertCount);
         } catch (Exception e) {
             log.error("Flood gauge sync failed: {}", e.getMessage());
+            throw new RuntimeException("Flood gauge sync failed", e);
         }
     }
 
     // ──────────────────────────────────────────────
     // Rivernet device sync: every 15 minutes
     // ──────────────────────────────────────────────
-    @Scheduled(fixedDelay = 900000)
     @Transactional
     public void syncRivernetDevices() {
         log.info("⏳ Rivernet device sync started");
@@ -211,6 +243,7 @@ public class FloodSyncScheduler {
             log.info("✅ Rivernet sync completed – {} devices upserted", upsertCount);
         } catch (Exception e) {
             log.error("Rivernet device sync failed: {}", e.getMessage());
+            throw new RuntimeException("Rivernet device sync failed", e);
         }
     }
 
@@ -220,17 +253,18 @@ public class FloodSyncScheduler {
             List<SpatialUnit> gnDivisions = spatialUnitRepository.findByType(SpatialType.GN_DIVISION);
             SpatialUnit nearestGn = gnDivisions.stream()
                     .filter(su -> su.getLat() != null && su.getLng() != null)
-                    .min(Comparator.comparingDouble(su ->
-                            Math.sqrt(Math.pow(su.getLat() - reading.getLat(), 2) + Math.pow(su.getLng() - reading.getLng(), 2))
-                    ))
+                    .min(Comparator.comparingDouble(su -> Math.sqrt(
+                            Math.pow(su.getLat() - reading.getLat(), 2) + Math.pow(su.getLng() - reading.getLng(), 2))))
                     .orElse(null);
 
             UUID spatialUnitId = nearestGn != null ? nearestGn.getId() : null;
-            DisasterSeverity severity = (reading.getAlertLevel() == AlertLevel.MAJOR_FLOOD) 
-                    ? DisasterSeverity.EXTREME : DisasterSeverity.HIGH;
+            DisasterSeverity severity = (reading.getAlertLevel() == AlertLevel.MAJOR_FLOOD)
+                    ? DisasterSeverity.EXTREME
+                    : DisasterSeverity.HIGH;
 
             String headline = String.format("Flood Warning: %s (%s)", reading.getStationName(), reading.getBasin());
-            String bulletin = String.format("Automated sensor detection: Water level at %s has reached %s level (%.2fm).",
+            String bulletin = String.format(
+                    "Automated sensor detection: Water level at %s has reached %s level (%.2fm).",
                     reading.getStationName(), reading.getAlertLevel().name(), reading.getWaterLevel());
 
             disasterWarningService.createAutomatedWarning(
@@ -238,8 +272,7 @@ public class FloodSyncScheduler {
                     severity,
                     headline,
                     bulletin,
-                    spatialUnitId
-            );
+                    spatialUnitId);
             log.info("📢 Automated flood warning triggered for {}", reading.getStationName());
         } catch (Exception e) {
             log.error("Failed to trigger automated flood warning for {}: {}", reading.getStationName(), e.getMessage());

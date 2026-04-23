@@ -31,6 +31,7 @@ public class WeatherNodeTelemetrySummaryDto {
     private Double uvIndex;
     private Double capeJkg;
     private Integer weatherCode;
+    private String symbolCode;
     private Double usAqi;
     private Double pm10;
     private Double pm25;

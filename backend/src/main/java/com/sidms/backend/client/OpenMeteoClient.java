@@ -29,6 +29,7 @@ public class OpenMeteoClient {
     private static final String FORECAST_BASE = "https://api.open-meteo.com/v1/forecast";
     private static final String HISTORICAL_BASE = "https://historical-forecast-api.open-meteo.com/v1/forecast";
     private static final String AIR_QUALITY_BASE = "https://air-quality-api.open-meteo.com/v1/air-quality";
+    private static final String ENSEMBLE_BASE = "https://ensemble-api.open-meteo.com/v1/ensemble";
 
     private final RestTemplate restTemplate;
     private final ApiKeyManager apiKeyManager;
@@ -62,6 +63,14 @@ public class OpenMeteoClient {
      */
     public JsonNode getCurrentBatch(String latsCsv, String lngsCsv, String currentParams) {
         String url = FORECAST_BASE + "?latitude=" + latsCsv + "&longitude=" + lngsCsv + "&" + currentParams;
+        return fetchWithRetry(url);
+    }
+
+    /**
+     * Fetch ensemble forecast for a batch of coordinates.
+     */
+    public JsonNode getEnsembleBatch(String latsCsv, String lngsCsv, String ensembleParams) {
+        String url = ENSEMBLE_BASE + "?latitude=" + latsCsv + "&longitude=" + lngsCsv + "&" + ensembleParams;
         return fetchWithRetry(url);
     }
 

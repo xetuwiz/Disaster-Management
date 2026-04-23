@@ -37,6 +37,12 @@ public class SpatialUnitWeatherNodeMapping {
     @Column(name = "is_primary")
     private Boolean isPrimary;
 
+    @Column(name = "effective_distance", columnDefinition = "numeric")
+    private Double effectiveDistance;
+
+    @Column(name = "elevation_diff_m", columnDefinition = "numeric")
+    private Double elevationDiffM;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

@@ -71,6 +71,9 @@ public class WeatherNodeLiveCache {
     @Column(name = "weather_code")
     private Integer weatherCode;
 
+    @Column(name = "symbol_code", length = 50)
+    private String symbolCode;
+
     @Column(name = "us_aqi")
     private Double usAqi;
 
