@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const [savedLocations, setSavedLocations] = useState<SavedLocationItem[]>([]);
   const [fetchingSavedLocations, setFetchingSavedLocations] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [isLocating, setIsLocating] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const location = useLocation();
 
@@ -88,6 +89,32 @@ export default function DashboardPage() {
       );
     }
   }, []);
+
+  const handleLocateMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setSelectedUnitState(null);
+        setSelectedLocation(null);
+        setSaveState('idle');
+        setIsLocating(false);
+      },
+      () => {
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  }, [setSelectedLocation]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -226,6 +253,15 @@ export default function DashboardPage() {
             className="flex-1"
             placeholder="Search district, city or GN division..."
           />
+          <button
+            type="button"
+            onClick={handleLocateMe}
+            disabled={isLocating}
+            title="Locate me"
+            className="shrink-0 p-2.5 rounded-xl border transition-all bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-60"
+          >
+            <Navigation size={18} className={isLocating ? 'animate-pulse text-blue-300' : ''} />
+          </button>
           {/* Save location button — only when a unit is selected & authenticated */}
           {isAuth && selectedUnit && (
             <button

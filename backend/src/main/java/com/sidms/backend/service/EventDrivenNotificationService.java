@@ -618,7 +618,20 @@ public class EventDrivenNotificationService {
                         rule.getChannels().isEmpty() || 
                         rule.getChannels().stream().anyMatch(c -> c.equalsIgnoreCase(channel.getChannelType().name()));
 
-                if (requestedByRule && channel.isEnabledForUser(user)) {
+                boolean enabled = channel.isEnabledForUser(user);
+                
+                // Rule-based alerts bypass global opt-in if explicitly requested, but still need contact info
+                if (rule != null && requestedByRule) {
+                    if (channel.getChannelType() == NotificationDelivery.Channel.SMS) {
+                        enabled = user.getPhone() != null && !user.getPhone().isBlank();
+                    } else if (channel.getChannelType() == NotificationDelivery.Channel.EMAIL) {
+                        enabled = user.getEmail() != null && !user.getEmail().isBlank();
+                    } else if (channel.getChannelType() == NotificationDelivery.Channel.IN_APP) {
+                        enabled = true;
+                    }
+                }
+
+                if (requestedByRule && enabled) {
                     NotificationDelivery delivery = NotificationDelivery.builder()
                             .notificationId(notification.getId())
                             .userId(user.getId())

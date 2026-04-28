@@ -881,8 +881,8 @@ const AdminSystemPage = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-slate-400">{job.lastRunAt ? new Date(job.lastRunAt).toLocaleString() : 'Never'}</td>
-                    <td className="px-6 py-4 text-slate-400">{job.nextRunAt ? new Date(job.nextRunAt).toLocaleString() : 'Pending'}</td>
+                    <td className="px-6 py-4 text-slate-400">{job.lastSuccessUtc ? new Date(job.lastSuccessUtc).toLocaleString() : 'Never'}</td>
+                    <td className="px-6 py-4 text-slate-400">{job.nextAllowedUtc ? new Date(job.nextAllowedUtc).toLocaleString() : 'Pending'}</td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button

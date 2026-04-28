@@ -66,6 +66,23 @@ export const getConditionText = (code: number): string => {
   return map[code] ?? 'Unknown';
 };
 
+export const mapSymbolToWmo = (sym?: string): number => {
+  if (!sym) return 3; // Default to cloudy
+  const s = sym.toLowerCase();
+  if (s.includes('clear') || s.includes('fair') || s.includes('sun')) return 0;
+  if (s.includes('partlycloudy')) return 2;
+  if (s.includes('cloudy')) return 3;
+  if (s.includes('fog')) return 45;
+  if (s.includes('lightrain')) return 51;
+  if (s.includes('heavyrain')) return 65;
+  if (s.includes('rainshowers')) return 80;
+  if (s.includes('rain')) return 63;
+  if (s.includes('snow')) return 73;
+  if (s.includes('lightning') || s.includes('thunderstorm')) return 95;
+  return 3;
+};
+
+
 const getUvLabel = (uv: number) => {
   if (uv <= 2) return { label: 'Low', color: 'from-emerald-400 to-emerald-500', text: 'text-emerald-400' };
   if (uv <= 5) return { label: 'Moderate', color: 'from-yellow-400 to-amber-500', text: 'text-yellow-400' };
@@ -136,33 +153,43 @@ export const WeatherCard: React.FC<{ data: WeatherResponse }> = ({ data }) => {
       <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/15 rounded-full mix-blend-screen filter blur-[90px] opacity-60 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/15 rounded-full mix-blend-screen filter blur-[90px] opacity-60 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-      {/* Background weather icon watermark */}
-      <div className="absolute top-4 right-4 p-4 opacity-10 pointer-events-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] transform group-hover:scale-110 transition-transform duration-500">
-        {getWeatherIcon(data.weatherCode, isDay, 'w-16 h-16')}
-      </div>
+
 
       {/* ── Header ── */}
-      <div className="relative z-10 flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-white/90 flex items-center gap-3 drop-shadow-sm">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+      <div className="relative z-10 flex justify-between items-center gap-6 mb-8">
+        <div className="flex items-center gap-5">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-white/10 to-transparent border border-white/20 shadow-lg shrink-0">
+            <span className="text-blue-300 drop-shadow-lg">
+              {getWeatherIcon(data.weatherCode, isDay, 'w-12 h-12')}
+            </span>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white/90 flex items-center gap-3 drop-shadow-sm">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
             </span>
             {data.spatialUnitName}
           </h2>
           <p className="text-white/50 text-sm mt-1 font-medium tracking-wide flex items-center gap-2">
             {getConditionText(data.weatherCode)}
             {data.dataQuality && (
-              <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                data.dataQuality === 'LIVE'
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                  : data.dataQuality === 'ESTIMATED'
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                  : 'bg-slate-500/20 text-slate-400 border-slate-500/30'
-              }`}>{data.dataQuality}</span>
+              <span
+                className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+                  data.dataQuality === 'LIVE' || data.dataQuality === 'STATION_DIRECT'
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : data.dataQuality === 'MODEL_BIAS_CORRECTED'
+                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                    : data.dataQuality === 'ESTIMATED'
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                    : 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+                }`}
+              >
+                {data.dataQuality}
+              </span>
             )}
           </p>
+          </div>
         </div>
         <div className="text-right">
           <div className="text-5xl font-extrabold text-white tracking-tighter drop-shadow-md">

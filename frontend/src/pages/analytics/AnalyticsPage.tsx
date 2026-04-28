@@ -12,6 +12,9 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Legend,
+  AreaChart,
+  Area,
+  ReferenceLine,
 } from 'recharts';
 import {
   TrendingUp,
@@ -31,17 +34,21 @@ import {
   Satellite,
   Radio,
   Wind,
+  Clock,
   Droplets,
   MapPin,
   Activity,
+  Navigation,
 } from 'lucide-react';
-import { analyticsApi } from '../../api/endpoints';
+import { analyticsApi, weatherApi } from '../../api/endpoints';
 import { useWeather } from '../../hooks/useWeather';
 import { SpatialUnitSearch } from '../../components/common/SpatialUnitSearch';
-import { StatCard } from '../../components/common/StatCard';
 import Card from '../../components/common/Card';
-import Badge from '../../components/common/Badge';
+import { Badge } from '../../components/common/Badge';
+import { StatCard } from '../../components/common/StatCard';
 import { useLocationContextStore } from '../../store/locationContextStore';
+import { getConditionText, getWeatherIcon, mapSymbolToWmo } from '../../components/weather/WeatherCard';
+import type { WeatherResponse } from '../../components/weather/WeatherCard';
 
 type AnalyticsTab = 'overview' | 'forecast' | 'patterns' | 'rainfall' | 'sources';
 
@@ -146,6 +153,35 @@ interface HourlyTrendDto {
   precipitationMm: number | null;
 }
 
+interface ForecastShortIntervalDto {
+  start: string;
+  end: string;
+  symbol?: { code?: string };
+  symbolCode?: { next1Hour?: string };
+  temperature?: { value?: number };
+  feelsLike?: { value?: number };
+  precipitation?: { value?: number };
+  wind?: { speed?: number; direction?: number };
+  cloudCover?: { value?: number };
+  humidity?: { value?: number };
+  dewPoint?: { value?: number };
+  pressure?: { value?: number };
+  uvIndex?: { value?: number };
+}
+
+interface ForecastDayIntervalDto {
+  start: string;
+  end: string;
+  twentyFourHourSymbol?: string;
+  twelveHourSymbols?: string[];
+  sixHourSymbols?: string[];
+  symbolConfidence?: string;
+  precipitation?: { value?: number };
+  temperature?: { min?: number; max?: number; value?: number };
+  wind?: { min?: number; max?: number; direction?: number };
+  uvIndex?: { max?: number };
+}
+
 interface AdvancedForecastResponse {
   tempC: number | null;
   apparentTempC: number | null;
@@ -153,7 +189,13 @@ interface AdvancedForecastResponse {
   pressureHpa: number | null;
   windSpeedKmh: number | null;
   uvIndex: number | null;
-  shortIntervals?: Array<{ start: string }>;
+  weatherCode?: number;
+  isDay?: number;
+  sunrise?: string | null;
+  sunset?: string | null;
+  dataQuality?: string | null;
+  dayIntervals?: ForecastDayIntervalDto[];
+  shortIntervals?: ForecastShortIntervalDto[];
 }
 
 const CHART_COLORS = {
@@ -165,31 +207,47 @@ const CHART_COLORS = {
 };
 
 function formatDay(dateString: string): string {
-  const parts = dateString.split('-');
-  if (parts.length !== 3) {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
     return dateString;
   }
-
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  const localDate = new Date(year, month - 1, day);
-
-  return localDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 function formatDayLong(dateString: string): string {
-  const parts = dateString.split('-');
-  if (parts.length !== 3) {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
     return dateString;
   }
+  return parsed.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
 
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  const localDate = new Date(year, month - 1, day);
+function formatTimeLabel(isoString: string): string {
+  const parsed = new Date(isoString);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoString;
+  }
 
-  return localDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return parsed.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatShortHourLabel(isoString: string): string {
+  const parsed = new Date(isoString);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoString;
+  }
+
+  return parsed.toLocaleTimeString(undefined, { hour: '2-digit', hour12: false });
+}
+
+
+function windDirectionLabel(degrees?: number): string {
+  if (degrees == null || Number.isNaN(degrees)) {
+    return 'calm';
+  }
+
+  const directions = ['north', 'north east', 'east', 'south east', 'south', 'south west', 'west', 'north west'];
+  return directions[Math.round(degrees / 45) % 8];
 }
 
 export default function AnalyticsPage() {
@@ -198,6 +256,8 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
   const [showBriefing, setShowBriefing] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedLocation) {
@@ -346,6 +406,7 @@ export default function AnalyticsPage() {
   }, [analytics, forecast, anomalies.length, trendSummary.deltaTemp, reliabilitySummary.hitRate, reliabilitySummary.totalForecasts]);
 
   const handleSelectUnit = (unit: LocationOption) => {
+    setLocationMessage(null);
     setSelectedUnit(unit);
     setSelectedLocation({
       id: unit.id,
@@ -356,6 +417,74 @@ export default function AnalyticsPage() {
       lng: unit.lng,
     });
   };
+
+  const handleLocateMe = async () => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    setIsLocating(true);
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        });
+      });
+
+      const nearest = await weatherApi.getNearestWeather(position.coords.latitude, position.coords.longitude);
+      const resolvedUnit = {
+        id: nearest.spatialUnitId,
+        name: nearest.spatialUnitName,
+        type: nearest.spatialUnitType,
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+
+      setSelectedUnit(resolvedUnit);
+      setSelectedLocation({
+        id: resolvedUnit.id,
+        name: resolvedUnit.name,
+        type: resolvedUnit.type,
+      });
+      setLocationMessage(`Located nearest unit for your current position: ${nearest.spatialUnitName}.`);
+    } catch {
+      setLocationMessage('Could not determine your location. Please search for a spatial unit instead.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const weatherCardData = weather as WeatherResponse | undefined;
+  const hourlyForecastRows = weather?.shortIntervals ?? [];
+  const dailyForecastRows = weather?.dayIntervals ?? [];
+
+  const meteogramData = useMemo(() => {
+    let lastDay = '';
+    return hourlyForecastRows.slice(0, 48).map(hour => {
+      const d = new Date(hour.start);
+      const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
+      const isDayBoundary = dayName !== lastDay;
+      lastDay = dayName;
+
+      return {
+        time: formatTimeLabel(hour.start),
+        displayTime: isDayBoundary ? `${dayName} ${formatTimeLabel(hour.start)}` : formatTimeLabel(hour.start),
+        dayName,
+        isDayBoundary,
+        fullDate: hour.start,
+        temp: hour.temperature?.value ?? null,
+        feelsLike: hour.feelsLike?.value ?? null,
+        precip: hour.precipitation?.value ?? 0,
+        windSpeed: hour.wind?.speed ?? null,
+        humidity: hour.humidity?.value ?? null,
+        pressure: hour.pressure?.value ?? null,
+        uvIndex: hour.uvIndex?.value ?? 0
+      };
+    });
+  }, [hourlyForecastRows]);
 
   return (
     <div className="bg-slate-900 text-slate-100 min-h-[calc(100vh-80px)] rounded-xl font-sans space-y-8 p-6">
@@ -382,16 +511,28 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <Card className="p-5">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
-          <div className="lg:col-span-2">
+      <Card className="p-5 space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="space-y-2">
             <p className="text-sm text-slate-400 mb-2">Choose a spatial unit</p>
-            <div className="max-w-xl">
-              <SpatialUnitSearch onSelect={handleSelectUnit} />
+            <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
+              <SpatialUnitSearch onSelect={handleSelectUnit} className="flex-1 max-w-none" />
+              <button
+                type="button"
+                onClick={() => void handleLocateMe()}
+                disabled={isLocating}
+                className="sm:w-12 w-full shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xl font-semibold transition flex items-center justify-center min-h-[44px] disabled:opacity-60"
+                title="Locate me"
+              >
+                <Navigation className={isLocating ? 'w-4 h-4 animate-pulse' : 'w-4 h-4'} />
+                <span className="sm:hidden ml-2">Locate me</span>
+              </button>
             </div>
+            {locationMessage && <p className="text-xs text-slate-500">{locationMessage}</p>}
           </div>
+
           {selectedUnit && (
-            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 min-w-[240px]">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Selected</p>
               <p className="text-lg font-bold text-white mt-1">{selectedUnit.name}</p>
               <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
@@ -400,6 +541,69 @@ export default function AnalyticsPage() {
             </div>
           )}
         </div>
+
+        {weatherCardData ? (
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-4 flex items-center gap-3 lg:col-span-2">
+              <div className="text-blue-300">{getWeatherIcon(weatherCardData.weatherCode ?? 3, weatherCardData.isDay ?? 1, 'w-12 h-12')}</div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500">Condition</p>
+                <p className="text-sm font-semibold text-slate-100">{getConditionText(weatherCardData.weatherCode ?? 3)}</p>
+                <p className="text-[10px] text-slate-500 mt-1">{weatherCardData.dataQuality ?? '—'}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">Temperature</p>
+              <p className="text-2xl font-black text-blue-300 mt-1">
+                {weatherCardData.tempC != null ? `${weatherCardData.tempC.toFixed(1)}°` : '—'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Feels {weatherCardData.apparentTempC != null ? `${weatherCardData.apparentTempC.toFixed(1)}°` : '—'}
+              </p>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">Wind</p>
+              <p className="text-2xl font-black text-amber-300 mt-1">
+                {weatherCardData.windSpeedKmh != null ? `${weatherCardData.windSpeedKmh.toFixed(1)}` : '—'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">km/h</p>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">Rain</p>
+              <p className="text-2xl font-black text-emerald-300 mt-1">
+                {weatherCardData.precipitationMm != null ? `${weatherCardData.precipitationMm.toFixed(1)}` : '—'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">mm</p>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">Humidity</p>
+              <p className="text-2xl font-black text-purple-300 mt-1">
+                {weatherCardData.humidityPct != null ? `${weatherCardData.humidityPct.toFixed(0)}%` : '—'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Pressure {weatherCardData.pressureHpa != null ? `${weatherCardData.pressureHpa.toFixed(0)} hPa` : '—'}
+              </p>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500">Sun / UV</p>
+              <p className="text-lg font-black text-amber-300 mt-1">
+                {weatherCardData.sunrise && weatherCardData.sunset ? 'Daylight' : '—'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                UV {weatherCardData.uvIndex != null ? weatherCardData.uvIndex.toFixed(1) : '—'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="h-24 rounded-2xl border border-dashed border-slate-700 flex items-center justify-center text-sm text-slate-500">
+            Select a unit or use Locate me to load current conditions.
+          </div>
+        )}
       </Card>
 
       {!selectedUnit ? (
@@ -552,44 +756,250 @@ export default function AnalyticsPage() {
           )}
 
           {activeTab === 'forecast' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="p-5 lg:col-span-2">
-                <h3 className="text-lg font-bold text-purple-400 flex items-center gap-2 mb-4">
-                  <Radar className="w-5 h-5" /> 14-Day Precipitation Forecast
-                </h3>
-                <div className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={forecast}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                      <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickFormatter={formatDay} />
-                      <YAxis stroke="#94A3B8" fontSize={11} unit="mm" />
-                      <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155' }} />
-                      <Legend />
-                      <Bar dataKey="predictedPrecip" name="Predicted" fill={CHART_COLORS.forecast} radius={[4, 4, 0, 0]} />
-                      {showAdvanced && <Line type="monotone" dataKey="upperBound" name="Upper" stroke={CHART_COLORS.upper} strokeWidth={1.5} dot={false} strokeDasharray="4 4" />}
-                      {showAdvanced && <Line type="monotone" dataKey="lowerBound" name="Lower" stroke={CHART_COLORS.lower} strokeWidth={1.5} dot={false} strokeDasharray="4 4" />}
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
-
-              <Card className="p-5">
-                <h3 className="text-lg font-bold text-amber-400 flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-5 h-5" /> Anomalies
-                </h3>
-                <div className="space-y-3 max-h-[320px] overflow-auto">
-                  {anomalies.length === 0 && <p className="text-sm text-slate-400 italic">No active anomaly flags right now.</p>}
-                  {anomalies.map((item, index) => (
-                    <div key={`${item.metric}-${index}`} className="p-3 rounded-xl border border-slate-700 bg-slate-900/40">
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-slate-200 capitalize font-semibold">{item.metric}</p>
-                        <Badge variant={Math.abs(item.zScore ?? 0) >= 2 ? 'critical' : 'warning'} size="sm">{item.classification}</Badge>
+            <div className="space-y-6">
+              {weatherCardData && (
+                <Card className="p-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900/60 border border-slate-700 text-blue-300">
+                        {getWeatherIcon(weatherCardData.weatherCode ?? 3, weatherCardData.isDay ?? 1, 'w-10 h-10')}
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">Month {item.month} • z-score {item.zScore != null ? item.zScore.toFixed(2) : 'N/A'}</p>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">Current conditions</p>
+                        <h3 className="text-xl font-bold text-slate-100">{getConditionText(weatherCardData.weatherCode ?? 3)}</h3>
+                        <p className="text-sm text-slate-400 mt-1">{weatherCardData.dataQuality ?? 'Backend weather feed'}</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </Card>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 w-full lg:w-auto">
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">Temp</p>
+                        <p className="text-lg font-black text-blue-300">{weatherCardData.tempC != null ? `${weatherCardData.tempC.toFixed(1)}°` : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">Feels</p>
+                        <p className="text-lg font-black text-emerald-300">{weatherCardData.apparentTempC != null ? `${weatherCardData.apparentTempC.toFixed(1)}°` : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">Wind</p>
+                        <p className="text-lg font-black text-amber-300">{weatherCardData.windSpeedKmh != null ? `${weatherCardData.windSpeedKmh.toFixed(1)} km/h` : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">Rain</p>
+                        <p className="text-lg font-black text-cyan-300">{weatherCardData.precipitationMm != null ? `${weatherCardData.precipitationMm.toFixed(1)} mm` : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">Humidity</p>
+                        <p className="text-lg font-black text-purple-300">{weatherCardData.humidityPct != null ? `${weatherCardData.humidityPct.toFixed(0)}%` : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-3">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500">UV</p>
+                        <p className="text-lg font-black text-amber-300">{weatherCardData.uvIndex != null ? weatherCardData.uvIndex.toFixed(1) : '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card className="p-5 xl:col-span-2">
+                  <h3 className="text-lg font-bold text-blue-300 flex items-center gap-2 mb-4">
+                    <Calendar className="w-5 h-5" /> 14-Day forecast table
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px] border-separate border-spacing-y-2">
+                      <thead>
+                        <tr className="text-left text-[10px] uppercase tracking-widest text-slate-500">
+                          <th className="px-3 py-2">Date</th>
+                          <th className="px-3 py-2">Night</th>
+                          <th className="px-3 py-2">Morning</th>
+                          <th className="px-3 py-2">Afternoon</th>
+                          <th className="px-3 py-2">Evening</th>
+                          <th className="px-3 py-2">Min / Max</th>
+                          <th className="px-3 py-2">Rain</th>
+                          <th className="px-3 py-2">Wind</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dailyForecastRows.map((day, index) => (
+                          <tr key={`${day.start}-${index}`} className="rounded-xl bg-slate-900/40 border border-slate-700">
+                            <td className="px-3 py-3 rounded-l-xl">
+                              <div className="font-semibold text-slate-100">{index === 0 ? 'Today' : formatDayLong(day.start)}</div>
+                            </td>
+                            {(day.sixHourSymbols ?? []).map((symbol, periodIndex) => (
+                              <td key={`${symbol}-${periodIndex}`} className="px-3 py-3 align-top">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-blue-300">{getWeatherIcon(mapSymbolToWmo(symbol), 1, 'w-5 h-5')}</span>
+                                  <div>
+                                    <p className="text-xs font-semibold text-slate-200 capitalize">
+                                      {getConditionText(mapSymbolToWmo(symbol))}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500">{['Night', 'Morning', 'Afternoon', 'Evening'][periodIndex]}</p>
+                                  </div>
+                                </div>
+                              </td>
+                            ))}
+                            <td className="px-3 py-3 text-slate-100 font-semibold">
+                              {day.temperature?.max != null ? `${day.temperature.max.toFixed(0)}°` : '—'} / {day.temperature?.min != null ? `${day.temperature.min.toFixed(0)}°` : '—'}
+                            </td>
+                            <td className="px-3 py-3 text-slate-100 font-semibold">
+                              {day.precipitation?.value != null ? `${day.precipitation.value.toFixed(1)} mm` : '—'}
+                            </td>
+                            <td className="px-3 py-3 rounded-r-xl text-slate-100 font-semibold">
+                              {day.wind?.max != null ? `${day.wind.max.toFixed(0)} km/h` : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+
+                <Card className="p-5 xl:col-span-2">
+                  <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2 mb-4">
+                    <Clock className="w-5 h-5" /> 24-hour forecast table
+                  </h3>
+                  <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+                    <table className="w-full min-w-[900px] border-separate border-spacing-y-2">
+                      <thead>
+                        <tr className="text-left text-[10px] uppercase tracking-widest text-slate-500">
+                          <th className="px-3 py-2">Time</th>
+                          <th className="px-3 py-2">Weather</th>
+                          <th className="px-3 py-2">Temp</th>
+                          <th className="px-3 py-2">Feels</th>
+                          <th className="px-3 py-2">Rain</th>
+                          <th className="px-3 py-2">Wind</th>
+                          <th className="px-3 py-2">Humidity</th>
+                          <th className="px-3 py-2">Pressure</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {hourlyForecastRows.slice(0, 24).map((hour, index) => {
+                          const symbol = hour.symbolCode?.next1Hour ?? hour.symbol?.code;
+                          return (
+                            <tr key={`${hour.start}-${index}`} className="rounded-xl bg-slate-900/40 border border-slate-700">
+                              <td className="px-3 py-3 rounded-l-xl font-semibold text-slate-100">{index === 0 ? 'Now' : formatTimeLabel(hour.start)}</td>
+                              <td className="px-3 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-blue-300">{getWeatherIcon(mapSymbolToWmo(symbol), 1, 'w-5 h-5')}</span>
+                                  <span className="text-sm text-slate-200 capitalize">{getConditionText(mapSymbolToWmo(symbol))}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 text-slate-100 font-semibold">{hour.temperature?.value != null ? `${hour.temperature.value.toFixed(1)}°` : '—'}</td>
+                              <td className="px-3 py-3 text-slate-100 font-semibold">{hour.feelsLike?.value != null ? `${hour.feelsLike.value.toFixed(1)}°` : '—'}</td>
+                              <td className="px-3 py-3 text-slate-100 font-semibold">{hour.precipitation?.value != null ? `${hour.precipitation.value.toFixed(1)} mm` : '—'}</td>
+                              <td className="px-3 py-3 text-slate-100 font-semibold">{hour.wind?.speed != null ? `${hour.wind.speed.toFixed(1)} km/h ${windDirectionLabel(hour.wind.direction)}` : '—'}</td>
+                              <td className="px-3 py-3 text-slate-100 font-semibold">{hour.humidity?.value != null ? `${hour.humidity.value.toFixed(0)}%` : '—'}</td>
+                              <td className="px-3 py-3 rounded-r-xl text-slate-100 font-semibold">{hour.pressure?.value != null ? `${hour.pressure.value.toFixed(0)} hPa` : '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+
+                <Card className="p-5 lg:col-span-2">
+                  <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4 border-b border-slate-700 pb-2">
+                    <Activity className="w-5 h-5 text-blue-400" /> Advanced Meteogram (48-hour)
+                  </h3>
+                  
+                  <div className="space-y-8">
+                    {/* Temperature */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Temperature & Feels Like (°C)</p>
+                      <div className="h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={meteogramData}>
+                            <defs>
+                              <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#38BDF8" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#38BDF8" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="time" stroke="#94A3B8" fontSize={10} minTickGap={20} tickFormatter={(val, i) => meteogramData[i]?.isDayBoundary ? `${meteogramData[i].dayName} ${val}` : val} />
+                            <YAxis stroke="#94A3B8" fontSize={11} domain={['dataMin - 2', 'dataMax + 2']} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155' }} />
+                            <Legend />
+                            {meteogramData.map((d, i) => d.isDayBoundary && i > 0 ? (
+                              <ReferenceLine key={i} x={d.time} stroke="#475569" strokeDasharray="5 5" label={{ value: d.dayName, position: 'top', fill: '#94A3B8', fontSize: 10 }} />
+                            ) : null)}
+                            <Area type="monotone" dataKey="temp" name="Temperature" stroke="#38BDF8" fillOpacity={1} fill="url(#tempGrad)" strokeWidth={2} />
+                            <Line type="monotone" dataKey="feelsLike" name="Feels Like" stroke="#F59E0B" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Precipitation */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Precipitation (mm)</p>
+                      <div className="h-[140px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={meteogramData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="time" stroke="#94A3B8" fontSize={10} minTickGap={20} tickFormatter={(val, i) => meteogramData[i]?.isDayBoundary ? `${meteogramData[i].dayName} ${val}` : val} />
+                            <YAxis stroke="#94A3B8" fontSize={11} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155' }} />
+                            {meteogramData.map((d, i) => d.isDayBoundary && i > 0 ? (
+                              <ReferenceLine key={i} x={d.time} stroke="#475569" strokeDasharray="5 5" />
+                            ) : null)}
+                            <Bar dataKey="precip" name="Rain" fill="#34D399" radius={[2, 2, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Wind */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Wind Speed (km/h)</p>
+                      <div className="h-[140px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={meteogramData}>
+                            <defs>
+                              <linearGradient id="windGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#A78BFA" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="time" stroke="#94A3B8" fontSize={10} minTickGap={20} tickFormatter={(val, i) => meteogramData[i]?.isDayBoundary ? `${meteogramData[i].dayName} ${val}` : val} />
+                            <YAxis stroke="#94A3B8" fontSize={11} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155' }} />
+                            {meteogramData.map((d, i) => d.isDayBoundary && i > 0 ? (
+                              <ReferenceLine key={i} x={d.time} stroke="#475569" strokeDasharray="5 5" />
+                            ) : null)}
+                            <Area type="monotone" dataKey="windSpeed" name="Wind Speed" stroke="#A78BFA" fillOpacity={1} fill="url(#windGrad)" strokeWidth={2} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Humidity & Pressure */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Humidity (%) & Pressure (hPa)</p>
+                      <div className="h-[160px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={meteogramData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="time" stroke="#94A3B8" fontSize={10} minTickGap={20} tickFormatter={(val, i) => meteogramData[i]?.isDayBoundary ? `${meteogramData[i].dayName} ${val}` : val} />
+                            <YAxis yAxisId="left" stroke="#94A3B8" fontSize={11} domain={[0, 100]} />
+                            <YAxis yAxisId="right" orientation="right" stroke="#94A3B8" fontSize={11} domain={['dataMin - 5', 'dataMax + 5']} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155' }} />
+                            <Legend />
+                            {meteogramData.map((d, i) => d.isDayBoundary && i > 0 ? (
+                              <ReferenceLine key={i} x={d.time} yAxisId="left" stroke="#475569" strokeDasharray="5 5" />
+                            ) : null)}
+                            <Line yAxisId="left" type="monotone" dataKey="humidity" name="Humidity" stroke="#818CF8" strokeWidth={2} dot={false} />
+                            <Line yAxisId="right" type="monotone" dataKey="pressure" name="Pressure" stroke="#F472B6" strokeWidth={2} dot={false} />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                  </div>
+                </Card>
+              </div>
             </div>
           )}
 

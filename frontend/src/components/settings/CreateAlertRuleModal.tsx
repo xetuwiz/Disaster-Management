@@ -80,7 +80,7 @@ const CreateAlertRuleModal: React.FC<CreateAlertRuleModalProps> = ({ isOpen, onC
     }
   }, [initialData]);
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       name: '',
       parameter: 'temp_c',
@@ -134,11 +134,13 @@ const CreateAlertRuleModal: React.FC<CreateAlertRuleModalProps> = ({ isOpen, onC
 
   const toggleChannel = (channel: string) => {
     const current = channels || [];
+    let next;
     if (current.includes(channel)) {
-      return current.filter((c: string) => c !== channel);
+      next = current.filter((c: string) => c !== channel);
     } else {
-      return [...current, channel];
+      next = [...current, channel];
     }
+    setValue('channels', next);
   };
 
   if (!isOpen) return null;
@@ -383,7 +385,7 @@ const CreateAlertRuleModal: React.FC<CreateAlertRuleModalProps> = ({ isOpen, onC
                       ? 'bg-emerald-500/20 border border-emerald-500/40'
                       : 'hover:bg-slate-800/50 border border-transparent'
                   }`}
-                  onClick={() => reset({ ...watch(), channels: toggleChannel('IN_APP') })}
+                  onClick={() => toggleChannel('IN_APP')}
                 >
                   <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
                     channels.includes('IN_APP')
@@ -405,7 +407,7 @@ const CreateAlertRuleModal: React.FC<CreateAlertRuleModalProps> = ({ isOpen, onC
                       ? 'bg-blue-500/20 border border-blue-500/40'
                       : 'hover:bg-slate-800/50 border border-transparent'
                   }`}
-                  onClick={() => reset({ ...watch(), channels: toggleChannel('EMAIL') })}
+                  onClick={() => toggleChannel('EMAIL')}
                 >
                   <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
                     channels.includes('EMAIL')
@@ -427,7 +429,7 @@ const CreateAlertRuleModal: React.FC<CreateAlertRuleModalProps> = ({ isOpen, onC
                       ? 'bg-amber-500/20 border border-amber-500/40'
                       : 'hover:bg-slate-800/50 border border-transparent'
                   }`}
-                  onClick={() => reset({ ...watch(), channels: toggleChannel('SMS') })}
+                  onClick={() => toggleChannel('SMS')}
                 >
                   <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
                     channels.includes('SMS')
